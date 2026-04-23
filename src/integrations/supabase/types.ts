@@ -285,6 +285,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_website_order: {
+        Args: {
+          p_full_name: string
+          p_phone: string
+          p_plan_id: string
+          p_receipt_path: string
+          p_telegram: string
+        }
+        Returns: {
+          id: string
+          order_number: string
+        }[]
+      }
+      get_order_by_number: {
+        Args: { p_number: string }
+        Returns: {
+          admin_note: string
+          amount_uzs: number
+          created_at: string
+          duration_months: number
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          status: Database["public"]["Enums"]["order_status"]
+        }[]
+      }
+      get_receipt_signed_url: { Args: { p_path: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
