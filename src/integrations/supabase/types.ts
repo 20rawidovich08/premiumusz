@@ -14,16 +14,290 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bot_users: {
+        Row: {
+          balance: number
+          banned: boolean
+          created_at: string
+          full_name: string | null
+          id: string
+          language: string
+          phone: string | null
+          referral_code: string
+          referred_by: string | null
+          telegram_id: number
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          balance?: number
+          banned?: boolean
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          language?: string
+          phone?: string | null
+          referral_code?: string
+          referred_by?: string | null
+          telegram_id: number
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          balance?: number
+          banned?: boolean
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          language?: string
+          phone?: string | null
+          referral_code?: string
+          referred_by?: string | null
+          telegram_id?: number
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_users_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcasts: {
+        Row: {
+          created_at: string
+          failed_count: number
+          id: string
+          message: string
+          sent_count: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          failed_count?: number
+          id?: string
+          message: string
+          sent_count?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          failed_count?: number
+          id?: string
+          message?: string
+          sent_count?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          admin_note: string | null
+          amount_stars: number | null
+          amount_uzs: number | null
+          bot_user_id: string | null
+          contact_full_name: string | null
+          contact_phone: string | null
+          contact_telegram: string | null
+          created_at: string
+          duration_months: number
+          id: string
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          plan_id: string | null
+          receipt_url: string | null
+          source: Database["public"]["Enums"]["order_source"]
+          stars_charge_id: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_stars?: number | null
+          amount_uzs?: number | null
+          bot_user_id?: string | null
+          contact_full_name?: string | null
+          contact_phone?: string | null
+          contact_telegram?: string | null
+          created_at?: string
+          duration_months: number
+          id?: string
+          order_number?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          plan_id?: string | null
+          receipt_url?: string | null
+          source?: Database["public"]["Enums"]["order_source"]
+          stars_charge_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_stars?: number | null
+          amount_uzs?: number | null
+          bot_user_id?: string | null
+          contact_full_name?: string | null
+          contact_phone?: string | null
+          contact_telegram?: string | null
+          created_at?: string
+          duration_months?: number
+          id?: string
+          order_number?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          plan_id?: string | null
+          receipt_url?: string | null
+          source?: Database["public"]["Enums"]["order_source"]
+          stars_charge_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_bot_user_id_fkey"
+            columns: ["bot_user_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          duration_months: number
+          id: string
+          price_stars: number
+          price_uzs: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          duration_months: number
+          id?: string
+          price_stars: number
+          price_uzs: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          duration_months?: number
+          id?: string
+          price_stars?: number
+          price_uzs?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referral_events: {
+        Row: {
+          created_at: string
+          id: string
+          referred_id: string | null
+          referrer_id: string | null
+          reward: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_id?: string | null
+          referrer_id?: string | null
+          reward?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_id?: string | null
+          referrer_id?: string | null
+          reward?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_events_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_events_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      order_source: "bot" | "website"
+      order_status: "pending" | "approved" | "rejected" | "paid"
+      payment_method: "card" | "stars" | "balance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +424,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      order_source: ["bot", "website"],
+      order_status: ["pending", "approved", "rejected", "paid"],
+      payment_method: ["card", "stars", "balance"],
+    },
   },
 } as const
