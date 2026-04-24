@@ -1,25 +1,61 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { LangSwitcher } from "@/components/LangSwitcher";
 import { useI18n } from "@/lib/i18n";
-import { Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Sparkles, Wallet, User as UserIcon, LogOut, Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const SiteHeader = () => {
   const { t } = useI18n();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const [balance, setBalance] = useState<number>(0);
+
+  useEffect(() => {
+    if (!user) { setBalance(0); return; }
+    let active = true;
+    supabase.from("profiles").select("balance").eq("id", user.id).maybeSingle().then(({ data }) => {
+      if (active) setBalance(Number(data?.balance ?? 0));
+    });
+    const ch = supabase
+      .channel(`profile-${user.id}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` }, (payload: any) => {
+        setBalance(Number(payload.new?.balance ?? 0));
+      })
+      .subscribe();
+    return () => { active = false; supabase.removeChannel(ch); };
+  }, [user]);
+
   const navItems = [
     { to: "/", label: t("nav.home") },
     { to: "/pricing", label: t("nav.pricing") },
-    { to: "/order", label: t("nav.order") },
-    { to: "/track", label: t("nav.track") },
+    { to: "/stars", label: t("nav.stars") },
   ];
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full">
-      <div className="container flex items-center justify-between py-4">
+      <div className="container flex items-center justify-between gap-2 py-4">
         <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary glow-ring">
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </span>
           <span className="text-gradient">Premium UZ</span>
         </Link>
+
         <nav className="hidden items-center gap-1 rounded-full glass px-2 py-1 md:flex">
           {navItems.map((n) => (
             <NavLink
@@ -36,7 +72,60 @@ export const SiteHeader = () => {
             </NavLink>
           ))}
         </nav>
-        <LangSwitcher />
+
+        <div className="flex items-center gap-2">
+          <LangSwitcher />
+          {!loading && user ? (
+            <>
+              <Link
+                to="/topup"
+                className="hidden items-center gap-1.5 rounded-full bg-secondary/60 px-3 py-1.5 text-sm font-medium hover:bg-secondary md:inline-flex"
+              >
+                <Wallet className="h-4 w-4 text-primary" />
+                {balance.toLocaleString("ru-RU")} <span className="text-xs text-muted-foreground">UZS</span>
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-full">
+                    <UserIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">{user.email}</div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    <UserIcon className="mr-2 h-4 w-4" /> {t("nav.profile")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/topup")}>
+                    <Wallet className="mr-2 h-4 w-4" /> {t("nav.topup")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="mr-2 h-4 w-4" /> {t("nav.signout")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : !loading ? (
+            <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground">
+              <Link to="/auth">{t("nav.login")}</Link>
+            </Button>
+          ) : null}
+
+          {/* mobile nav */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="md:hidden">
+                <Menu className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {navItems.map((n) => (
+                <DropdownMenuItem key={n.to} onClick={() => navigate(n.to)}>{n.label}</DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );

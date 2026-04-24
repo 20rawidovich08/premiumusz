@@ -3,13 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { Link } from "react-router-dom";
-import { Check, Sparkles, Star } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 
 interface Plan {
   id: string;
   duration_months: number;
   price_uzs: number;
-  price_stars: number;
 }
 
 export const PricingCards = ({ compact = false }: { compact?: boolean }) => {
@@ -19,13 +18,13 @@ export const PricingCards = ({ compact = false }: { compact?: boolean }) => {
   useEffect(() => {
     supabase
       .from("plans")
-      .select("id,duration_months,price_uzs,price_stars")
+      .select("id,duration_months,price_uzs")
       .eq("active", true)
       .order("duration_months")
       .then(({ data }) => setPlans((data as Plan[]) ?? []));
   }, []);
 
-  const popular = plans.find((p) => p.duration_months === 3)?.id;
+  const popular = plans.find((p) => p.duration_months === 6)?.id ?? plans.find((p) => p.duration_months === 3)?.id;
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
@@ -49,12 +48,8 @@ export const PricingCards = ({ compact = false }: { compact?: boolean }) => {
                 {p.duration_months} {p.duration_months === 1 ? t("pricing.month") : t("pricing.months")}
               </h3>
             </div>
-            <div className="mb-1 text-4xl font-display font-bold">
+            <div className="mb-6 text-4xl font-display font-bold">
               {Number(p.price_uzs).toLocaleString("ru-RU")} <span className="text-base font-normal text-muted-foreground">UZS</span>
-            </div>
-            <div className="mb-6 flex items-center gap-1 text-sm text-muted-foreground">
-              <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-              {p.price_stars} {t("pricing.stars")}
             </div>
             {!compact && (
               <ul className="mb-6 space-y-2 text-sm">
@@ -65,7 +60,7 @@ export const PricingCards = ({ compact = false }: { compact?: boolean }) => {
               </ul>
             )}
             <Button asChild className="mt-auto h-12 rounded-xl bg-gradient-primary font-semibold text-primary-foreground hover:opacity-90">
-              <Link to={`/order?plan=${p.id}`}>{t("pricing.choose")}</Link>
+              <Link to={`/buy/premium?plan=${p.id}`}>{t("pricing.choose")}</Link>
             </Button>
           </div>
         );

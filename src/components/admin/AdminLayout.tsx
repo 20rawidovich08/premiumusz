@@ -3,13 +3,15 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag, Star, Wallet } from "lucide-react";
 
 const items = [
   { to: "/admin", end: true, icon: LayoutDashboard, label: "Dashboard" },
   { to: "/admin/orders", icon: ShoppingBag, label: "Orders" },
+  { to: "/admin/topups", icon: Wallet, label: "Top-ups" },
   { to: "/admin/users", icon: Users, label: "Users" },
   { to: "/admin/plans", icon: Tag, label: "Plans" },
+  { to: "/admin/stars", icon: Star, label: "Stars" },
   { to: "/admin/settings", icon: Settings, label: "Settings" },
   { to: "/admin/broadcast", icon: Megaphone, label: "Broadcast" },
 ];
