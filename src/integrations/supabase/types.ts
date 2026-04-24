@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      balance_transactions: {
+        Row: {
+          admin_note: string | null
+          amount_uzs: number
+          created_at: string
+          id: string
+          order_id: string | null
+          receipt_url: string | null
+          status: Database["public"]["Enums"]["tx_status"]
+          type: Database["public"]["Enums"]["tx_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_uzs: number
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          receipt_url?: string | null
+          status?: Database["public"]["Enums"]["tx_status"]
+          type: Database["public"]["Enums"]["tx_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_uzs?: number
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          receipt_url?: string | null
+          status?: Database["public"]["Enums"]["tx_status"]
+          type?: Database["public"]["Enums"]["tx_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balance_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bot_users: {
         Row: {
           balance: number
@@ -109,11 +156,15 @@ export type Database = {
           order_number: string
           payment_method: Database["public"]["Enums"]["payment_method"]
           plan_id: string | null
+          product_type: string
           receipt_url: string | null
           source: Database["public"]["Enums"]["order_source"]
+          stars_amount: number | null
           stars_charge_id: string | null
           status: Database["public"]["Enums"]["order_status"]
+          telegram_target: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           admin_note?: string | null
@@ -129,11 +180,15 @@ export type Database = {
           order_number?: string
           payment_method: Database["public"]["Enums"]["payment_method"]
           plan_id?: string | null
+          product_type?: string
           receipt_url?: string | null
           source?: Database["public"]["Enums"]["order_source"]
+          stars_amount?: number | null
           stars_charge_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          telegram_target?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           admin_note?: string | null
@@ -149,11 +204,15 @@ export type Database = {
           order_number?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
           plan_id?: string | null
+          product_type?: string
           receipt_url?: string | null
           source?: Database["public"]["Enums"]["order_source"]
+          stars_amount?: number | null
           stars_charge_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          telegram_target?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -168,6 +227,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -198,6 +264,36 @@ export type Database = {
           id?: string
           price_stars?: number
           price_uzs?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          balance: number
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          telegram_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          telegram_username?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -259,6 +355,33 @@ export type Database = {
         }
         Relationships: []
       }
+      stars_packages: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          sort_order: number
+          stars: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          sort_order?: number
+          stars: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          sort_order?: number
+          stars?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -285,6 +408,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_analytics: { Args: never; Returns: Json }
+      admin_decide_order: {
+        Args: { p_approve: boolean; p_note?: string; p_order_id: string }
+        Returns: undefined
+      }
+      admin_decide_topup: {
+        Args: { p_approve: boolean; p_note?: string; p_tx_id: string }
+        Returns: undefined
+      }
       create_website_order: {
         Args: {
           p_full_name: string
@@ -318,12 +450,37 @@ export type Database = {
         }
         Returns: boolean
       }
+      purchase_premium_with_balance: {
+        Args: { p_plan_id: string; p_telegram: string }
+        Returns: {
+          order_id: string
+          order_number: string
+        }[]
+      }
+      purchase_stars_with_balance: {
+        Args: { p_stars: number; p_telegram: string }
+        Returns: {
+          order_id: string
+          order_number: string
+        }[]
+      }
+      request_topup: {
+        Args: { p_amount_uzs: number; p_receipt_path: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user"
       order_source: "bot" | "website"
       order_status: "pending" | "approved" | "rejected" | "paid"
       payment_method: "card" | "stars" | "balance"
+      tx_status: "pending" | "approved" | "rejected"
+      tx_type:
+        | "topup"
+        | "premium_purchase"
+        | "stars_purchase"
+        | "refund"
+        | "adjustment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -455,6 +612,14 @@ export const Constants = {
       order_source: ["bot", "website"],
       order_status: ["pending", "approved", "rejected", "paid"],
       payment_method: ["card", "stars", "balance"],
+      tx_status: ["pending", "approved", "rejected"],
+      tx_type: [
+        "topup",
+        "premium_purchase",
+        "stars_purchase",
+        "refund",
+        "adjustment",
+      ],
     },
   },
 } as const
