@@ -47,11 +47,13 @@ const BuyPremium = () => {
 
   const submit = async () => {
     if (!selected) return;
-    if (!tg.trim()) return toast.error(t("buy.target") + " — " + t("common.required"));
+    const tgTrim = tg.trim();
+    if (!tgTrim) return toast.error(t("buy.target") + " — " + t("common.required"));
+    if (!/^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(tgTrim)) return toast.error(t("buy.targetInvalid"));
     if (insufficient) return toast.error(t("buy.insufficient"));
     setBusy(true);
     const { data, error } = await supabase.rpc("purchase_premium_with_balance", {
-      p_plan_id: selected.id, p_telegram: tg.trim(),
+      p_plan_id: selected.id, p_telegram: tgTrim,
     });
     setBusy(false);
     if (error) return toast.error(error.message);

@@ -52,12 +52,14 @@ const BuyStars = () => {
   const belowMin = stars < minStars;
 
   const submit = async () => {
-    if (!tg.trim()) return toast.error(t("buy.target") + " — " + t("common.required"));
+    const tgTrim = tg.trim();
+    if (!tgTrim) return toast.error(t("buy.target") + " — " + t("common.required"));
+    if (!/^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(tgTrim)) return toast.error(t("buy.targetInvalid"));
     if (belowMin) return toast.error(`${t("stars.min")}: ${minStars}`);
     if (insufficient) return toast.error(t("buy.insufficient"));
     setBusy(true);
     const { data, error } = await supabase.rpc("purchase_stars_with_balance", {
-      p_stars: stars, p_telegram: tg.trim(),
+      p_stars: stars, p_telegram: tgTrim,
     });
     setBusy(false);
     if (error) return toast.error(error.message);

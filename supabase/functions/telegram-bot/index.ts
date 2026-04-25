@@ -1,7 +1,7 @@
-// Telegram bot webhook handler
-// Handles: /start (with optional referral payload), registration (contact),
-// plan selection, card payment flow (with receipt forwarding to admin),
-// Stars invoice + successful_payment, balance, referrals.
+// Telegram bot webhook handler (to'liq saytdagi funksiyalar bilan).
+// Reply keyboard (asosiy menyu) + inline tugmalar (tarif tanlash, paket, tasdiq).
+// Funksiyalar: /start (referral), ro'yxatdan o'tish (kontakt), Premium 3/6/12, Stars,
+// Balans to'ldirish (chek rasmi), Profil, Mening buyurtmalarim, Referal, Yordam.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const TG_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
@@ -11,13 +11,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
-
 const TG_API = `https://api.telegram.org/bot${TG_TOKEN}`;
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "*",
-};
+const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" };
+
+const fmt = (n: number | string) => Number(n).toLocaleString("ru-RU");
+const USERNAME_RE = /^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
 
 async function tg(method: string, body: unknown) {
   const res = await fetch(`${TG_API}/${method}`, {
@@ -35,19 +34,13 @@ async function getSetting(key: string, fallback: any = null) {
 
 async function getOrCreateUser(from: any, startPayload?: string) {
   const { data: existing } = await supabase
-    .from("bot_users")
-    .select("*")
-    .eq("telegram_id", from.id)
-    .maybeSingle();
+    .from("bot_users").select("*").eq("telegram_id", from.id).maybeSingle();
   if (existing) return existing;
 
   let referrerId: string | null = null;
   if (startPayload) {
     const { data: refUser } = await supabase
-      .from("bot_users")
-      .select("id")
-      .eq("referral_code", startPayload)
-      .maybeSingle();
+      .from("bot_users").select("id").eq("referral_code", startPayload).maybeSingle();
     if (refUser) referrerId = refUser.id;
   }
 
@@ -59,82 +52,95 @@ async function getOrCreateUser(from: any, startPayload?: string) {
       full_name: [from.first_name, from.last_name].filter(Boolean).join(" ") || null,
       referred_by: referrerId,
     })
-    .select()
-    .single();
+    .select().single();
 
-  // referral reward
   if (referrerId) {
     const reward = Number(await getSetting("referral_reward", 0));
     if (reward > 0) {
-      await supabase.rpc("increment_balance", { p_user_id: referrerId, p_delta: reward }).catch(async () => {
-        const { data: r } = await supabase.from("bot_users").select("balance").eq("id", referrerId!).single();
-        await supabase.from("bot_users").update({ balance: Number(r?.balance || 0) + reward }).eq("id", referrerId!);
-      });
-      await supabase.from("referral_events").insert({
-        referrer_id: referrerId,
-        referred_id: created!.id,
-        reward,
-      });
-      await tg("sendMessage", {
-        chat_id: (await supabase.from("bot_users").select("telegram_id").eq("id", referrerId).single()).data?.telegram_id,
-        text: `🎉 Yangi taklif! +${reward.toLocaleString("ru-RU")} UZS hisobingizga qo'shildi.`,
-      }).catch(() => {});
+      const { data: r } = await supabase.from("bot_users").select("balance,telegram_id").eq("id", referrerId).single();
+      await supabase.from("bot_users").update({ balance: Number(r?.balance || 0) + reward }).eq("id", referrerId);
+      await supabase.from("referral_events").insert({ referrer_id: referrerId, referred_id: created!.id, reward });
+      if (r?.telegram_id) {
+        await tg("sendMessage", {
+          chat_id: r.telegram_id,
+          text: `🎉 Yangi taklif! +${fmt(reward)} UZS hisobingizga qo'shildi.`,
+        }).catch(() => {});
+      }
     }
   }
   return created;
 }
 
-function plansKeyboard(plans: any[]) {
-  return {
-    inline_keyboard: plans.map((p) => [
-      {
-        text: `${p.duration_months} oy — ${Number(p.price_uzs).toLocaleString("ru-RU")} UZS / ⭐ ${p.price_stars}`,
-        callback_data: `plan:${p.id}`,
-      },
-    ]),
-  };
-}
-
-function paymentMethodKeyboard(planId: string, cardEnabled: boolean, starsEnabled: boolean, balance: number, price: number) {
-  const rows: any[] = [];
-  if (cardEnabled) rows.push([{ text: "💳 Karta orqali", callback_data: `pay_card:${planId}` }]);
-  if (starsEnabled) rows.push([{ text: "⭐ Telegram Stars", callback_data: `pay_stars:${planId}` }]);
-  if (balance >= price) rows.push([{ text: `👛 Balansdan to'lash (${balance.toLocaleString("ru-RU")} UZS)`, callback_data: `pay_balance:${planId}` }]);
-  rows.push([{ text: "« Orqaga", callback_data: "menu:plans" }]);
-  return { inline_keyboard: rows };
-}
-
+// ============ Keyboards ============
 function mainMenu() {
   return {
     keyboard: [
-      [{ text: "🛒 Premium sotib olish" }, { text: "💰 Balans" }],
-      [{ text: "👥 Referal" }, { text: "📋 Mening buyurtmalarim" }],
-      [{ text: "ℹ️ Yordam" }],
+      [{ text: "👑 Premium" }, { text: "⭐ Stars" }],
+      [{ text: "💰 Balans" }, { text: "💳 Balansni to'ldirish" }],
+      [{ text: "👤 Profil" }, { text: "📋 Buyurtmalarim" }],
+      [{ text: "👥 Referal" }, { text: "ℹ️ Yordam" }],
     ],
     resize_keyboard: true,
   };
 }
 
-async function sendPlans(chatId: number) {
-  const { data: plans } = await supabase.from("plans").select("*").eq("active", true).order("duration_months");
-  await tg("sendMessage", {
-    chat_id: chatId,
-    text: "📦 Tarifni tanlang:",
-    reply_markup: plansKeyboard(plans ?? []),
-  });
+function cancelKeyboard() {
+  return { keyboard: [[{ text: "❌ Bekor qilish" }]], resize_keyboard: true, one_time_keyboard: true };
 }
 
+function shareContactKeyboard() {
+  return {
+    keyboard: [[{ text: "📱 Raqamni ulashish", request_contact: true }]],
+    resize_keyboard: true,
+    one_time_keyboard: true,
+  };
+}
+
+async function premiumPlansInline() {
+  const { data: plans } = await supabase.from("plans").select("*").eq("active", true).order("duration_months");
+  return {
+    inline_keyboard: (plans ?? []).map((p: any) => [{
+      text: `${p.duration_months} oy — ${fmt(p.price_uzs)} UZS`,
+      callback_data: `premium:${p.id}`,
+    }]),
+  };
+}
+
+async function starsPackagesInline() {
+  const { data: pkgs } = await supabase.from("stars_packages").select("*").eq("active", true).order("stars");
+  const rate = Number(await getSetting("stars_rate_uzs", 220));
+  return {
+    inline_keyboard: (pkgs ?? []).map((p: any) => [{
+      text: `⭐ ${p.stars} — ${fmt(p.stars * rate)} UZS`,
+      callback_data: `stars:${p.stars}`,
+    }]),
+  };
+}
+
+function confirmInline(prefix: string, id: string) {
+  return {
+    inline_keyboard: [[
+      { text: "✅ Tasdiqlash", callback_data: `${prefix}_confirm:${id}` },
+      { text: "❌ Bekor", callback_data: "menu:home" },
+    ]],
+  };
+}
+
+// ============ Notify admin ============
 async function notifyAdminNewOrder(order: any, user: any, photoFileId?: string) {
   if (!ADMIN_CHAT_ID) return;
+  const product = order.product_type === "stars"
+    ? `⭐ ${order.stars_amount} Stars`
+    : `👑 Premium ${order.duration_months} oy`;
   const text =
     `🆕 <b>Yangi buyurtma</b>\n\n` +
     `№ <code>${order.order_number}</code>\n` +
     `👤 ${user.full_name || "-"} (@${user.username || "-"})\n` +
     `📞 ${user.phone || "-"}\n` +
     `🆔 <code>${user.telegram_id}</code>\n` +
-    `📦 ${order.duration_months} oy\n` +
-    `💵 ${order.amount_uzs ? Number(order.amount_uzs).toLocaleString("ru-RU") + " UZS" : "⭐ " + order.amount_stars}\n` +
-    `💳 ${order.payment_method}`;
+    `📦 ${product}\n` +
+    `🎯 ${order.telegram_target || "-"}\n` +
+    `💵 ${fmt(order.amount_uzs || 0)} UZS · ${order.payment_method}`;
   if (photoFileId) {
     await tg("sendPhoto", { chat_id: ADMIN_CHAT_ID, photo: photoFileId, caption: text, parse_mode: "HTML" });
   } else {
@@ -142,30 +148,137 @@ async function notifyAdminNewOrder(order: any, user: any, photoFileId?: string) 
   }
 }
 
-// In-memory ephemeral state: which order each user is uploading a receipt for.
-// (Stateless across deploys is fine; user can always restart the flow.)
-const pendingReceipts = new Map<number, string>(); // telegram_id -> order_id
+async function notifyAdminTopup(tx: any, user: any, photoFileId?: string) {
+  if (!ADMIN_CHAT_ID) return;
+  const text =
+    `💳 <b>Yangi balans to'ldirish</b>\n\n` +
+    `👤 ${user.full_name || "-"} (@${user.username || "-"})\n` +
+    `📞 ${user.phone || "-"}\n` +
+    `🆔 <code>${user.telegram_id}</code>\n` +
+    `💵 <b>${fmt(tx.amount_uzs)} UZS</b>`;
+  if (photoFileId) {
+    await tg("sendPhoto", { chat_id: ADMIN_CHAT_ID, photo: photoFileId, caption: text, parse_mode: "HTML" });
+  } else {
+    await tg("sendMessage", { chat_id: ADMIN_CHAT_ID, text, parse_mode: "HTML" });
+  }
+}
 
+// ============ Ephemeral state ============
+// Multi-step flows: which "wizard" the user is in.
+type Step =
+  | { kind: "premium_target"; planId: string }
+  | { kind: "stars_target"; stars: number }
+  | { kind: "topup_amount" }
+  | { kind: "topup_receipt"; amount: number }
+  | { kind: "edit_phone" }
+  | { kind: "edit_username" };
+
+const wizard = new Map<number, Step>();
+
+// ============ Helpers ============
+async function showHome(chatId: number, user: any) {
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: `👋 Xush kelibsiz, <b>${user.full_name || "do'stim"}</b>!\n\nBalans: <b>${fmt(user.balance)} UZS</b>\n\nQuyidagi menyudan tanlang 👇`,
+    parse_mode: "HTML",
+    reply_markup: mainMenu(),
+  });
+}
+
+async function showProfile(chatId: number, user: any) {
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text:
+      `👤 <b>Profil</b>\n\n` +
+      `Ism: <b>${user.full_name || "-"}</b>\n` +
+      `Telefon: <b>${user.phone || "-"}</b>\n` +
+      `Username: ${user.username ? "@" + user.username : "-"}\n` +
+      `Balans: <b>${fmt(user.balance)} UZS</b>\n` +
+      `🆔 <code>${user.telegram_id}</code>`,
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "✏️ Telefon o'zgartirish", callback_data: "profile:phone" }],
+        [{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }],
+      ],
+    },
+  });
+}
+
+async function showOrders(chatId: number, user: any) {
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("order_number,product_type,duration_months,stars_amount,amount_uzs,status,created_at")
+    .eq("bot_user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (!orders?.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Sizda hali buyurtmalar yo'q." });
+    return;
+  }
+  const statusEmoji: Record<string, string> = {
+    pending: "🕐", approved: "✅", rejected: "❌", paid: "💎",
+  };
+  const lines = orders.map((o: any) => {
+    const item = o.product_type === "stars" ? `⭐ ${o.stars_amount}` : `👑 ${o.duration_months}oy`;
+    return `${statusEmoji[o.status] || "•"} <code>${o.order_number}</code> · ${item} · ${fmt(o.amount_uzs || 0)} UZS`;
+  });
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "📋 <b>So'nggi buyurtmalaringiz</b>\n\n" + lines.join("\n"),
+    parse_mode: "HTML",
+  });
+}
+
+async function showReferral(chatId: number, user: any) {
+  const me = await tg("getMe", {});
+  const username = me?.result?.username;
+  const link = `https://t.me/${username}?start=${user.referral_code}`;
+  const reward = await getSetting("referral_reward", 0);
+  const { count } = await supabase
+    .from("referral_events").select("*", { count: "exact", head: true }).eq("referrer_id", user.id);
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text:
+      `👥 <b>Referal dasturi</b>\n\n` +
+      `Har bir taklif uchun: <b>${fmt(Number(reward))} UZS</b>\n` +
+      `Sizning takliflaringiz: <b>${count ?? 0}</b>\n\n` +
+      `Sizning havolangiz:\n${link}`,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+  });
+}
+
+async function showHelp(chatId: number) {
+  const cardNum = await getSetting("card_number", "");
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text:
+      `ℹ️ <b>Yordam</b>\n\n` +
+      `👑 <b>Premium</b> — 3/6/12 oylik Telegram Premium\n` +
+      `⭐ <b>Stars</b> — minimum 50 dona\n` +
+      `💳 <b>Balansni to'ldirish</b> — karta orqali, chek yuborilgach admin tasdiqlaydi\n` +
+      `👥 <b>Referal</b> — do'stlaringizni taklif qilib bonus oling\n\n` +
+      (cardNum ? `Karta: <code>${cardNum}</code>\n\n` : "") +
+      `Savollar uchun adminga yozing.`,
+    parse_mode: "HTML",
+  });
+}
+
+// ============ Main handler ============
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Verify webhook secret (Telegram sends X-Telegram-Bot-Api-Secret-Token header)
   if (WEBHOOK_SECRET) {
     const got = req.headers.get("x-telegram-bot-api-secret-token");
-    if (got !== WEBHOOK_SECRET) {
-      return new Response("forbidden", { status: 403 });
-    }
+    if (got !== WEBHOOK_SECRET) return new Response("forbidden", { status: 403 });
   }
 
   let update: any;
   try { update = await req.json(); } catch { return new Response("bad", { status: 400 }); }
 
   try {
-    if (update.pre_checkout_query) {
-      await tg("answerPreCheckoutQuery", { pre_checkout_query_id: update.pre_checkout_query.id, ok: true });
-      return new Response("ok");
-    }
-
+    // ==================== CALLBACK QUERIES ====================
     if (update.callback_query) {
       const cb = update.callback_query;
       const chatId = cb.message.chat.id;
@@ -173,122 +286,114 @@ Deno.serve(async (req) => {
       const user = await getOrCreateUser(cb.from);
       await tg("answerCallbackQuery", { callback_query_id: cb.id });
 
-      if (data === "menu:plans") {
-        await sendPlans(chatId);
-      } else if (data.startsWith("plan:")) {
+      // Home/menu navigation
+      if (data === "menu:home") {
+        wizard.delete(user.telegram_id);
+        await showHome(chatId, user);
+        return new Response("ok");
+      }
+      if (data === "menu:premium") {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: "👑 <b>Premium tarifini tanlang:</b>",
+          parse_mode: "HTML",
+          reply_markup: await premiumPlansInline(),
+        });
+        return new Response("ok");
+      }
+      if (data === "menu:stars") {
+        const rate = Number(await getSetting("stars_rate_uzs", 220));
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: `⭐ <b>Stars paketini tanlang:</b>\n\nJoriy kurs: <b>1 ⭐ = ${fmt(rate)} UZS</b>`,
+          parse_mode: "HTML",
+          reply_markup: await starsPackagesInline(),
+        });
+        return new Response("ok");
+      }
+      if (data === "menu:topup") {
+        wizard.set(user.telegram_id, { kind: "topup_amount" });
+        const min = Number(await getSetting("min_topup_uzs", 10000));
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: `💳 <b>Balansni to'ldirish</b>\n\nQancha summa to'ldirmoqchisiz? (UZS)\nMinimum: <b>${fmt(min)} UZS</b>`,
+          parse_mode: "HTML",
+          reply_markup: cancelKeyboard(),
+        });
+        return new Response("ok");
+      }
+
+      // Premium plan selected → ask for target username
+      if (data.startsWith("premium:")) {
         const planId = data.split(":")[1];
         const { data: plan } = await supabase.from("plans").select("*").eq("id", planId).single();
         if (!plan) return new Response("ok");
-        const cardEnabled = (await getSetting("card_enabled", true)) !== false;
-        const starsEnabled = (await getSetting("stars_enabled", true)) !== false;
-        await tg("sendMessage", {
-          chat_id: chatId,
-          text:
-            `📦 <b>${plan.duration_months} oylik Premium</b>\n\n` +
-            `💵 Karta: <b>${Number(plan.price_uzs).toLocaleString("ru-RU")} UZS</b>\n` +
-            `⭐ Stars: <b>${plan.price_stars}</b>\n\n` +
-            `To'lov usulini tanlang:`,
-          parse_mode: "HTML",
-          reply_markup: paymentMethodKeyboard(planId, cardEnabled, starsEnabled, Number(user.balance), Number(plan.price_uzs)),
-        });
-      } else if (data.startsWith("pay_card:")) {
-        const planId = data.split(":")[1];
-        const { data: plan } = await supabase.from("plans").select("*").eq("id", planId).single();
-        const cardNum = await getSetting("card_number", "");
-        const cardHolder = await getSetting("card_holder", "");
-        const cardBank = await getSetting("card_bank", "");
-        // Create pending order
-        const { data: order } = await supabase.from("orders").insert({
-          bot_user_id: user.id,
-          plan_id: planId,
-          duration_months: plan.duration_months,
-          amount_uzs: plan.price_uzs,
-          payment_method: "card",
-          status: "pending",
-          source: "bot",
-        }).select().single();
-        pendingReceipts.set(user.telegram_id, order!.id);
-        await tg("sendMessage", {
-          chat_id: chatId,
-          text:
-            `💳 <b>Karta orqali to'lov</b>\n\n` +
-            `Karta raqami:\n<code>${cardNum}</code>\n` +
-            `Egasi: <b>${cardHolder}</b>\n` +
-            `Bank: ${cardBank}\n\n` +
-            `💰 To'lov summasi: <b>${Number(plan.price_uzs).toLocaleString("ru-RU")} UZS</b>\n\n` +
-            `To'lovni amalga oshirgach, <b>chek rasmini shu yerga yuboring</b>.\n\n` +
-            `Buyurtma raqami: <code>${order!.order_number}</code>`,
-          parse_mode: "HTML",
-        });
-      } else if (data.startsWith("pay_stars:")) {
-        const planId = data.split(":")[1];
-        const { data: plan } = await supabase.from("plans").select("*").eq("id", planId).single();
-        await tg("sendInvoice", {
-          chat_id: chatId,
-          title: `Telegram Premium — ${plan.duration_months} oy`,
-          description: `${plan.duration_months} oylik Telegram Premium obunasi`,
-          payload: `plan:${plan.id}:${user.id}`,
-          provider_token: "", // empty = Telegram Stars
-          currency: "XTR",
-          prices: [{ label: `${plan.duration_months} months`, amount: plan.price_stars }],
-        });
-      } else if (data.startsWith("pay_balance:")) {
-        const planId = data.split(":")[1];
-        const { data: plan } = await supabase.from("plans").select("*").eq("id", planId).single();
         if (Number(user.balance) < Number(plan.price_uzs)) {
-          await tg("sendMessage", { chat_id: chatId, text: "❌ Balansda yetarli mablag' yo'q." });
-        } else {
-          const newBal = Number(user.balance) - Number(plan.price_uzs);
-          await supabase.from("bot_users").update({ balance: newBal }).eq("id", user.id);
-          const { data: order } = await supabase.from("orders").insert({
-            bot_user_id: user.id,
-            plan_id: planId,
-            duration_months: plan.duration_months,
-            amount_uzs: plan.price_uzs,
-            payment_method: "balance",
-            status: "approved",
-            source: "bot",
-          }).select().single();
           await tg("sendMessage", {
             chat_id: chatId,
-            text: `✅ Buyurtma yaratildi va balansdan to'landi.\n№ <code>${order!.order_number}</code>`,
+            text: `❌ Balansda yetarli mablag' yo'q.\n\nKerak: <b>${fmt(plan.price_uzs)} UZS</b>\nSizda: <b>${fmt(user.balance)} UZS</b>`,
             parse_mode: "HTML",
+            reply_markup: { inline_keyboard: [[{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }]] },
           });
-          await notifyAdminNewOrder(order, user);
+          return new Response("ok");
         }
+        wizard.set(user.telegram_id, { kind: "premium_target", planId });
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text:
+            `👑 <b>Premium ${plan.duration_months} oy</b> — ${fmt(plan.price_uzs)} UZS\n\n` +
+            `Premium qaysi akkauntga kerak? Telegram username yuboring (masalan @username).\n\n` +
+            `O'zingizga olishni xohlasangiz @${user.username || "username"} yuboring.`,
+          parse_mode: "HTML",
+          reply_markup: cancelKeyboard(),
+        });
+        return new Response("ok");
       }
+
+      // Stars package selected → ask for target
+      if (data.startsWith("stars:")) {
+        const stars = Number(data.split(":")[1]);
+        const rate = Number(await getSetting("stars_rate_uzs", 220));
+        const price = stars * rate;
+        if (Number(user.balance) < price) {
+          await tg("sendMessage", {
+            chat_id: chatId,
+            text: `❌ Balansda yetarli mablag' yo'q.\n\nKerak: <b>${fmt(price)} UZS</b>\nSizda: <b>${fmt(user.balance)} UZS</b>`,
+            parse_mode: "HTML",
+            reply_markup: { inline_keyboard: [[{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }]] },
+          });
+          return new Response("ok");
+        }
+        wizard.set(user.telegram_id, { kind: "stars_target", stars });
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text:
+            `⭐ <b>${stars} Stars</b> — ${fmt(price)} UZS\n\n` +
+            `Stars qaysi akkauntga kerak? Telegram username yuboring (@username).`,
+          parse_mode: "HTML",
+          reply_markup: cancelKeyboard(),
+        });
+        return new Response("ok");
+      }
+
+      if (data === "profile:phone") {
+        wizard.set(user.telegram_id, { kind: "edit_phone" });
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: "📱 Yangi telefon raqamingizni yuboring:",
+          reply_markup: shareContactKeyboard(),
+        });
+        return new Response("ok");
+      }
+
       return new Response("ok");
     }
 
+    // ==================== MESSAGES ====================
     const msg = update.message;
     if (!msg) return new Response("ok");
     const chatId = msg.chat.id;
     const from = msg.from;
-
-    // Successful Stars payment
-    if (msg.successful_payment) {
-      const sp = msg.successful_payment;
-      const [, planId, userId] = (sp.invoice_payload || "").split(":");
-      const { data: plan } = await supabase.from("plans").select("*").eq("id", planId).single();
-      const user = await getOrCreateUser(from);
-      const { data: order } = await supabase.from("orders").insert({
-        bot_user_id: user.id,
-        plan_id: planId,
-        duration_months: plan?.duration_months ?? 1,
-        amount_stars: sp.total_amount,
-        payment_method: "stars",
-        status: "paid",
-        source: "bot",
-        stars_charge_id: sp.telegram_payment_charge_id,
-      }).select().single();
-      await tg("sendMessage", {
-        chat_id: chatId,
-        text: `✅ To'lov qabul qilindi!\n№ <code>${order!.order_number}</code>\n\nTez orada Premium faollashtiriladi.`,
-        parse_mode: "HTML",
-      });
-      await notifyAdminNewOrder(order, user);
-      return new Response("ok");
-    }
 
     const user = await getOrCreateUser(from, msg.text?.startsWith("/start ") ? msg.text.split(" ")[1] : undefined);
     if (user.banned) {
@@ -302,132 +407,276 @@ Deno.serve(async (req) => {
         phone: msg.contact.phone_number,
         full_name: user.full_name || [msg.contact.first_name, msg.contact.last_name].filter(Boolean).join(" "),
       }).eq("id", user.id);
-      await tg("sendMessage", {
-        chat_id: chatId,
-        text: "✅ Ro'yxatdan o'tdingiz! Xush kelibsiz.",
-        reply_markup: mainMenu(),
-      });
-      return new Response("ok");
-    }
-
-    // Photo (receipt)
-    if (msg.photo && pendingReceipts.has(from.id)) {
-      const orderId = pendingReceipts.get(from.id)!;
-      const fileId = msg.photo[msg.photo.length - 1].file_id;
-      // Download from Telegram and upload to storage
-      const fileInfo = await tg("getFile", { file_id: fileId });
-      const filePath = fileInfo?.result?.file_path;
-      if (filePath) {
-        const fileRes = await fetch(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`);
-        const bytes = new Uint8Array(await fileRes.arrayBuffer());
-        const ext = filePath.split(".").pop() || "jpg";
-        const objPath = `${orderId}-${Date.now()}.${ext}`;
-        await supabase.storage.from("receipts").upload(objPath, bytes, { contentType: "image/jpeg", upsert: false });
-        await supabase.from("orders").update({ receipt_url: objPath }).eq("id", orderId);
-      }
-      const { data: order } = await supabase.from("orders").select("*").eq("id", orderId).single();
-      pendingReceipts.delete(from.id);
-      await tg("sendMessage", {
-        chat_id: chatId,
-        text: `✅ Chek qabul qilindi! Admin tez orada tekshirib chiqadi.\n№ <code>${order!.order_number}</code>`,
-        parse_mode: "HTML",
-        reply_markup: mainMenu(),
-      });
-      await notifyAdminNewOrder(order, user, fileId);
+      wizard.delete(user.telegram_id);
+      const updated = { ...user, phone: msg.contact.phone_number };
+      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon raqami saqlandi!", reply_markup: mainMenu() });
+      await showHome(chatId, updated);
       return new Response("ok");
     }
 
     const text: string = msg.text || "";
 
+    // Cancel always wins
+    if (text === "❌ Bekor qilish") {
+      wizard.delete(user.telegram_id);
+      await showHome(chatId, user);
+      return new Response("ok");
+    }
+
+    // ============ Wizard steps (multi-step flows) ============
+    const step = wizard.get(user.telegram_id);
+
+    if (step?.kind === "premium_target" && msg.photo === undefined) {
+      const tgname = text.trim();
+      if (!USERNAME_RE.test(tgname)) {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: "❌ Username noto'g'ri formatda. @ bilan boshlanishi va 5–32 belgi bo'lishi kerak.\nQayta yuboring:",
+        });
+        return new Response("ok");
+      }
+      const { data: plan } = await supabase.from("plans").select("*").eq("id", step.planId).single();
+      if (!plan || Number(user.balance) < Number(plan.price_uzs)) {
+        wizard.delete(user.telegram_id);
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu() });
+        return new Response("ok");
+      }
+      const newBal = Number(user.balance) - Number(plan.price_uzs);
+      await supabase.from("bot_users").update({ balance: newBal }).eq("id", user.id);
+      const { data: order } = await supabase.from("orders").insert({
+        bot_user_id: user.id,
+        plan_id: step.planId,
+        duration_months: plan.duration_months,
+        amount_uzs: plan.price_uzs,
+        payment_method: "balance",
+        status: "pending",
+        source: "bot",
+        product_type: "premium",
+        contact_full_name: user.full_name,
+        contact_phone: user.phone,
+        contact_telegram: user.username ? "@" + user.username : null,
+        telegram_target: tgname,
+      }).select().single();
+      wizard.delete(user.telegram_id);
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text:
+          `✅ <b>Buyurtma qabul qilindi!</b>\n\n` +
+          `№ <code>${order!.order_number}</code>\n` +
+          `Premium ${plan.duration_months} oy → ${tgname}\n` +
+          `Yangi balans: <b>${fmt(newBal)} UZS</b>\n\n` +
+          `Admin tasdiqlagach Premium faollashtiriladi.`,
+        parse_mode: "HTML",
+        reply_markup: mainMenu(),
+      });
+      await notifyAdminNewOrder(order, { ...user, balance: newBal });
+      return new Response("ok");
+    }
+
+    if (step?.kind === "stars_target") {
+      const tgname = text.trim();
+      if (!USERNAME_RE.test(tgname)) {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: "❌ Username noto'g'ri formatda. Qayta yuboring (masalan @username):",
+        });
+        return new Response("ok");
+      }
+      const rate = Number(await getSetting("stars_rate_uzs", 220));
+      const price = step.stars * rate;
+      if (Number(user.balance) < price) {
+        wizard.delete(user.telegram_id);
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu() });
+        return new Response("ok");
+      }
+      const newBal = Number(user.balance) - price;
+      await supabase.from("bot_users").update({ balance: newBal }).eq("id", user.id);
+      const { data: order } = await supabase.from("orders").insert({
+        bot_user_id: user.id,
+        duration_months: 0,
+        amount_uzs: price,
+        stars_amount: step.stars,
+        payment_method: "balance",
+        status: "pending",
+        source: "bot",
+        product_type: "stars",
+        contact_full_name: user.full_name,
+        contact_phone: user.phone,
+        contact_telegram: user.username ? "@" + user.username : null,
+        telegram_target: tgname,
+      }).select().single();
+      wizard.delete(user.telegram_id);
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text:
+          `✅ <b>Buyurtma qabul qilindi!</b>\n\n` +
+          `№ <code>${order!.order_number}</code>\n` +
+          `⭐ ${step.stars} Stars → ${tgname}\n` +
+          `Yangi balans: <b>${fmt(newBal)} UZS</b>\n\n` +
+          `Admin tasdiqlagach yetkaziladi.`,
+        parse_mode: "HTML",
+        reply_markup: mainMenu(),
+      });
+      await notifyAdminNewOrder(order, { ...user, balance: newBal });
+      return new Response("ok");
+    }
+
+    if (step?.kind === "topup_amount") {
+      const amount = Number(text.replace(/\s/g, "").replace(/,/g, ""));
+      const min = Number(await getSetting("min_topup_uzs", 10000));
+      if (!amount || amount < min) {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: `❌ Summa noto'g'ri yoki minimumdan kam (${fmt(min)} UZS).\nQayta kiriting:`,
+          reply_markup: cancelKeyboard(),
+        });
+        return new Response("ok");
+      }
+      wizard.set(user.telegram_id, { kind: "topup_receipt", amount });
+      const cardNum = await getSetting("card_number", "");
+      const cardHolder = await getSetting("card_holder", "");
+      const cardBank = await getSetting("card_bank", "");
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text:
+          `💳 <b>To'lov ma'lumotlari</b>\n\n` +
+          `Karta: <code>${cardNum}</code>\n` +
+          `Egasi: <b>${cardHolder}</b>\n` +
+          (cardBank ? `Bank: ${cardBank}\n` : "") +
+          `\n💵 Summa: <b>${fmt(amount)} UZS</b>\n\n` +
+          `To'lovni amalga oshirgach <b>chek rasmini yuboring</b> 📸`,
+        parse_mode: "HTML",
+        reply_markup: cancelKeyboard(),
+      });
+      return new Response("ok");
+    }
+
+    if (step?.kind === "topup_receipt") {
+      if (!msg.photo) {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: "❌ Iltimos chek <b>rasm</b>ini yuboring (matn emas).",
+          parse_mode: "HTML",
+          reply_markup: cancelKeyboard(),
+        });
+        return new Response("ok");
+      }
+      const fileId = msg.photo[msg.photo.length - 1].file_id;
+      const fileInfo = await tg("getFile", { file_id: fileId });
+      const filePath = fileInfo?.result?.file_path;
+      let receiptPath: string | null = null;
+      if (filePath) {
+        const fileRes = await fetch(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`);
+        const bytes = new Uint8Array(await fileRes.arrayBuffer());
+        const ext = filePath.split(".").pop() || "jpg";
+        receiptPath = `bot-topup-${user.id}-${Date.now()}.${ext}`;
+        await supabase.storage.from("receipts").upload(receiptPath, bytes, { contentType: "image/jpeg", upsert: false });
+      }
+      // Bot top-ups bypass profiles RLS — store as bot transaction (use service role).
+      // Store linked to bot_user via admin_note for traceability; balance sits on bot_users.
+      const { data: tx } = await supabase.from("balance_transactions").insert({
+        user_id: user.id, // bot_users.id reused (admin sees in topups by note)
+        type: "topup",
+        status: "pending",
+        amount_uzs: step.amount,
+        receipt_url: receiptPath,
+        admin_note: `BOT:${user.telegram_id}:${user.full_name || ""}`,
+      }).select().single();
+      wizard.delete(user.telegram_id);
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: `✅ Chek qabul qilindi!\n\nSumma: <b>${fmt(step.amount)} UZS</b>\nAdmin tekshirgach balansingizga qo'shiladi.`,
+        parse_mode: "HTML",
+        reply_markup: mainMenu(),
+      });
+      await notifyAdminTopup(tx, user, fileId);
+      return new Response("ok");
+    }
+
+    if (step?.kind === "edit_phone") {
+      const phone = text.trim();
+      if (phone.length < 7) {
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Telefon raqami noto'g'ri. Qayta yuboring:" });
+        return new Response("ok");
+      }
+      await supabase.from("bot_users").update({ phone }).eq("id", user.id);
+      wizard.delete(user.telegram_id);
+      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon yangilandi!", reply_markup: mainMenu() });
+      return new Response("ok");
+    }
+
+    // ============ Commands & menu buttons ============
     if (text.startsWith("/start")) {
       if (!user.phone) {
         await tg("sendMessage", {
           chat_id: chatId,
           text:
-            "👋 Assalomu alaykum!\n\nTelegram Premium do'koniga xush kelibsiz.\n\n" +
-            "Ro'yxatdan o'tish uchun telefon raqamingizni yuboring 👇",
-          reply_markup: {
-            keyboard: [[{ text: "📱 Raqamni ulashish", request_contact: true }]],
-            resize_keyboard: true,
-            one_time_keyboard: true,
-          },
+            "👋 <b>Assalomu alaykum!</b>\n\nTelegram Premium va Stars do'koniga xush kelibsiz.\n\n" +
+            "Boshlash uchun telefon raqamingizni yuboring 👇",
+          parse_mode: "HTML",
+          reply_markup: shareContactKeyboard(),
         });
       } else {
-        await tg("sendMessage", {
-          chat_id: chatId,
-          text: `👋 Xush kelibsiz, ${user.full_name || ""}!\n\nQuyidagi menyudan foydalaning 👇`,
-          reply_markup: mainMenu(),
-        });
+        await showHome(chatId, user);
       }
       return new Response("ok");
     }
 
-    if (text === "🛒 Premium sotib olish" || text === "/buy") {
+    if (text === "👑 Premium" || text === "/premium") {
       if (!user.phone) {
-        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing. /start" });
-      } else {
-        await sendPlans(chatId);
+        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        return new Response("ok");
       }
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: "👑 <b>Premium tarifini tanlang:</b>",
+        parse_mode: "HTML",
+        reply_markup: await premiumPlansInline(),
+      });
+    } else if (text === "⭐ Stars" || text === "/stars") {
+      if (!user.phone) {
+        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        return new Response("ok");
+      }
+      const rate = Number(await getSetting("stars_rate_uzs", 220));
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: `⭐ <b>Stars paketini tanlang:</b>\n\nJoriy kurs: <b>1 ⭐ = ${fmt(rate)} UZS</b>`,
+        parse_mode: "HTML",
+        reply_markup: await starsPackagesInline(),
+      });
     } else if (text === "💰 Balans" || text === "/balance") {
       await tg("sendMessage", {
         chat_id: chatId,
-        text: `💰 Sizning balansingiz: <b>${Number(user.balance).toLocaleString("ru-RU")} UZS</b>`,
+        text: `💰 Balansingiz: <b>${fmt(user.balance)} UZS</b>`,
         parse_mode: "HTML",
+        reply_markup: { inline_keyboard: [[{ text: "💳 To'ldirish", callback_data: "menu:topup" }]] },
       });
-    } else if (text === "👥 Referal" || text === "/ref") {
-      const me = await tg("getMe", {});
-      const username = me?.result?.username;
-      const link = `https://t.me/${username}?start=${user.referral_code}`;
-      const reward = await getSetting("referral_reward", 0);
-      const { count } = await supabase
-        .from("referral_events")
-        .select("*", { count: "exact", head: true })
-        .eq("referrer_id", user.id);
-      await tg("sendMessage", {
-        chat_id: chatId,
-        text:
-          `👥 <b>Referal dasturi</b>\n\n` +
-          `Har bir taklif uchun: <b>${Number(reward).toLocaleString("ru-RU")} UZS</b>\n` +
-          `Sizning takliflaringiz: <b>${count ?? 0}</b>\n\n` +
-          `Sizning havolangiz:\n${link}`,
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      });
-    } else if (text === "📋 Mening buyurtmalarim" || text === "/orders") {
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("order_number,duration_months,status,amount_uzs,amount_stars,created_at")
-        .eq("bot_user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (!orders?.length) {
-        await tg("sendMessage", { chat_id: chatId, text: "Sizda hali buyurtmalar yo'q." });
-      } else {
-        const lines = orders.map(
-          (o: any) =>
-            `<code>${o.order_number}</code> · ${o.duration_months}oy · ${
-              o.amount_uzs ? Number(o.amount_uzs).toLocaleString("ru-RU") + " UZS" : "⭐" + o.amount_stars
-            } · <i>${o.status}</i>`
-        );
-        await tg("sendMessage", { chat_id: chatId, text: lines.join("\n"), parse_mode: "HTML" });
+    } else if (text === "💳 Balansni to'ldirish" || text === "/topup") {
+      if (!user.phone) {
+        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        return new Response("ok");
       }
-    } else if (text === "ℹ️ Yordam" || text === "/help") {
+      wizard.set(user.telegram_id, { kind: "topup_amount" });
+      const min = Number(await getSetting("min_topup_uzs", 10000));
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          "ℹ️ <b>Yordam</b>\n\n" +
-          "🛒 Premium sotib olish — tarif tanlash\n" +
-          "💰 Balans — joriy balansingiz\n" +
-          "👥 Referal — do'stlarni taklif qilib bonus oling\n" +
-          "📋 Mening buyurtmalarim — buyurtmalar tarixi\n\n" +
-          "Savollar bo'lsa adminga yozing.",
+        text: `💳 <b>Balansni to'ldirish</b>\n\nQancha summa to'ldirmoqchisiz? (UZS)\nMinimum: <b>${fmt(min)} UZS</b>`,
         parse_mode: "HTML",
+        reply_markup: cancelKeyboard(),
       });
+    } else if (text === "👤 Profil" || text === "/profile") {
+      await showProfile(chatId, user);
+    } else if (text === "📋 Buyurtmalarim" || text === "/orders") {
+      await showOrders(chatId, user);
+    } else if (text === "👥 Referal" || text === "/ref") {
+      await showReferral(chatId, user);
+    } else if (text === "ℹ️ Yordam" || text === "/help") {
+      await showHelp(chatId);
     } else {
-      // Unknown text
       await tg("sendMessage", {
         chat_id: chatId,
-        text: "Iltimos, menyudan tanlang yoki /start bosing.",
+        text: "Iltimos quyidagi menyudan tanlang yoki /start bosing.",
         reply_markup: mainMenu(),
       });
     }
@@ -435,6 +684,6 @@ Deno.serve(async (req) => {
     return new Response("ok");
   } catch (e) {
     console.error("Bot error:", e);
-    return new Response("ok"); // always 200 so Telegram doesn't retry-storm
+    return new Response("ok");
   }
 });
