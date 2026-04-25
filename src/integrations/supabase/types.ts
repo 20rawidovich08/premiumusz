@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           admin_note: string | null
           amount_uzs: number
+          bot_user_id: string | null
           created_at: string
           id: string
           order_id: string | null
@@ -30,6 +31,7 @@ export type Database = {
         Insert: {
           admin_note?: string | null
           amount_uzs: number
+          bot_user_id?: string | null
           created_at?: string
           id?: string
           order_id?: string | null
@@ -42,6 +44,7 @@ export type Database = {
         Update: {
           admin_note?: string | null
           amount_uzs?: number
+          bot_user_id?: string | null
           created_at?: string
           id?: string
           order_id?: string | null
@@ -52,6 +55,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "balance_transactions_bot_user_id_fkey"
+            columns: ["bot_user_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "balance_transactions_user_id_fkey"
             columns: ["user_id"]
@@ -75,6 +85,7 @@ export type Database = {
           telegram_id: number
           updated_at: string
           username: string | null
+          wizard_state: Json
         }
         Insert: {
           balance?: number
@@ -89,6 +100,7 @@ export type Database = {
           telegram_id: number
           updated_at?: string
           username?: string | null
+          wizard_state?: Json
         }
         Update: {
           balance?: number
@@ -103,6 +115,7 @@ export type Database = {
           telegram_id?: number
           updated_at?: string
           username?: string | null
+          wizard_state?: Json
         }
         Relationships: [
           {
