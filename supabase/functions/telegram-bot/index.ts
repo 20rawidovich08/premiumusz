@@ -173,7 +173,18 @@ type Step =
   | { kind: "edit_phone" }
   | { kind: "edit_username" };
 
-const wizard = new Map<number, Step>();
+async function setWizard(userId: string, step: Step) {
+  await supabase.from("bot_users").update({ wizard_state: step as any }).eq("id", userId);
+}
+
+async function clearWizard(userId: string) {
+  await supabase.from("bot_users").update({ wizard_state: {} }).eq("id", userId);
+}
+
+function getWizard(user: any): Step | null {
+  const state = user?.wizard_state;
+  return state && typeof state === "object" && state.kind ? state as Step : null;
+}
 
 // ============ Helpers ============
 async function showHome(chatId: number, user: any) {
@@ -288,7 +299,7 @@ Deno.serve(async (req) => {
 
       // Home/menu navigation
       if (data === "menu:home") {
-        wizard.delete(user.telegram_id);
+        await clearWizard(user.id);
         await showHome(chatId, user);
         return new Response("ok");
       }
@@ -312,7 +323,7 @@ Deno.serve(async (req) => {
         return new Response("ok");
       }
       if (data === "menu:topup") {
-        wizard.set(user.telegram_id, { kind: "topup_amount" });
+        await setWizard(user.id, { kind: "topup_amount" });
         const min = Number(await getSetting("min_topup_uzs", 10000));
         await tg("sendMessage", {
           chat_id: chatId,
@@ -337,7 +348,7 @@ Deno.serve(async (req) => {
           });
           return new Response("ok");
         }
-        wizard.set(user.telegram_id, { kind: "premium_target", planId });
+        await setWizard(user.id, { kind: "premium_target", planId });
         await tg("sendMessage", {
           chat_id: chatId,
           text:
@@ -364,7 +375,7 @@ Deno.serve(async (req) => {
           });
           return new Response("ok");
         }
-        wizard.set(user.telegram_id, { kind: "stars_target", stars });
+        await setWizard(user.id, { kind: "stars_target", stars });
         await tg("sendMessage", {
           chat_id: chatId,
           text:
@@ -377,7 +388,7 @@ Deno.serve(async (req) => {
       }
 
       if (data === "profile:phone") {
-        wizard.set(user.telegram_id, { kind: "edit_phone" });
+        await setWizard(user.id, { kind: "edit_phone" });
         await tg("sendMessage", {
           chat_id: chatId,
           text: "📱 Yangi telefon raqamingizni yuboring:",
@@ -407,7 +418,7 @@ Deno.serve(async (req) => {
         phone: msg.contact.phone_number,
         full_name: user.full_name || [msg.contact.first_name, msg.contact.last_name].filter(Boolean).join(" "),
       }).eq("id", user.id);
-      wizard.delete(user.telegram_id);
+      await clearWizard(user.id);
       const updated = { ...user, phone: msg.contact.phone_number };
       await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon raqami saqlandi!", reply_markup: mainMenu() });
       await showHome(chatId, updated);
@@ -418,13 +429,13 @@ Deno.serve(async (req) => {
 
     // Cancel always wins
     if (text === "❌ Bekor qilish") {
-      wizard.delete(user.telegram_id);
+      await clearWizard(user.id);
       await showHome(chatId, user);
       return new Response("ok");
     }
 
     // ============ Wizard steps (multi-step flows) ============
-    const step = wizard.get(user.telegram_id);
+    const step = getWizard(user);
 
     if (step?.kind === "premium_target" && msg.photo === undefined) {
       const tgname = text.trim();
@@ -437,7 +448,7 @@ Deno.serve(async (req) => {
       }
       const { data: plan } = await supabase.from("plans").select("*").eq("id", step.planId).single();
       if (!plan || Number(user.balance) < Number(plan.price_uzs)) {
-        wizard.delete(user.telegram_id);
+        await clearWizard(user.id);
         await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu() });
         return new Response("ok");
       }
@@ -457,7 +468,7 @@ Deno.serve(async (req) => {
         contact_telegram: user.username ? "@" + user.username : null,
         telegram_target: tgname,
       }).select().single();
-      wizard.delete(user.telegram_id);
+      await clearWizard(user.id);
       await tg("sendMessage", {
         chat_id: chatId,
         text:
@@ -485,7 +496,7 @@ Deno.serve(async (req) => {
       const rate = Number(await getSetting("stars_rate_uzs", 220));
       const price = step.stars * rate;
       if (Number(user.balance) < price) {
-        wizard.delete(user.telegram_id);
+        await clearWizard(user.id);
         await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu() });
         return new Response("ok");
       }
@@ -505,7 +516,7 @@ Deno.serve(async (req) => {
         contact_telegram: user.username ? "@" + user.username : null,
         telegram_target: tgname,
       }).select().single();
-      wizard.delete(user.telegram_id);
+      await clearWizard(user.id);
       await tg("sendMessage", {
         chat_id: chatId,
         text:
@@ -532,7 +543,7 @@ Deno.serve(async (req) => {
         });
         return new Response("ok");
       }
-      wizard.set(user.telegram_id, { kind: "topup_receipt", amount });
+      await setWizard(user.id, { kind: "topup_receipt", amount });
       const cardNum = await getSetting("card_number", "");
       const cardHolder = await getSetting("card_holder", "");
       const cardBank = await getSetting("card_bank", "");
@@ -575,14 +586,15 @@ Deno.serve(async (req) => {
       // Bot top-ups bypass profiles RLS — store as bot transaction (use service role).
       // Store linked to bot_user via admin_note for traceability; balance sits on bot_users.
       const { data: tx } = await supabase.from("balance_transactions").insert({
-        user_id: user.id, // bot_users.id reused (admin sees in topups by note)
+        user_id: "00000000-0000-0000-0000-000000000000",
+        bot_user_id: user.id,
         type: "topup",
         status: "pending",
         amount_uzs: step.amount,
         receipt_url: receiptPath,
         admin_note: `BOT:${user.telegram_id}:${user.full_name || ""}`,
       }).select().single();
-      wizard.delete(user.telegram_id);
+      await clearWizard(user.id);
       await tg("sendMessage", {
         chat_id: chatId,
         text: `✅ Chek qabul qilindi!\n\nSumma: <b>${fmt(step.amount)} UZS</b>\nAdmin tekshirgach balansingizga qo'shiladi.`,
@@ -600,7 +612,7 @@ Deno.serve(async (req) => {
         return new Response("ok");
       }
       await supabase.from("bot_users").update({ phone }).eq("id", user.id);
-      wizard.delete(user.telegram_id);
+      await clearWizard(user.id);
       await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon yangilandi!", reply_markup: mainMenu() });
       return new Response("ok");
     }
@@ -657,7 +669,7 @@ Deno.serve(async (req) => {
         await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
         return new Response("ok");
       }
-      wizard.set(user.telegram_id, { kind: "topup_amount" });
+      await setWizard(user.id, { kind: "topup_amount" });
       const min = Number(await getSetting("min_topup_uzs", 10000));
       await tg("sendMessage", {
         chat_id: chatId,
