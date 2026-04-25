@@ -23,6 +23,7 @@ import AdminPlans from "./pages/admin/AdminPlans.tsx";
 import AdminStars from "./pages/admin/AdminStars.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminBroadcast from "./pages/admin/AdminBroadcast.tsx";
+import { CompleteProfileDialog } from "./components/CompleteProfileDialog.tsx";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <CompleteProfileDialog />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
