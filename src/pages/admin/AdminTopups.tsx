@@ -43,7 +43,10 @@ const AdminTopups = () => {
       p_tx_id: view.id, p_approve: approve, p_note: note || null,
     });
     if (error) return toast.error(error.message);
-    toast.success(approve ? "Top-up approved & balance added" : "Top-up rejected");
+    // Notify via Telegram bot (best-effort)
+    supabase.functions.invoke("notify-user", { body: { kind: "topup", id: view.id, approved: approve, note } })
+      .catch(() => {});
+    toast.success(approve ? "Tasdiqlandi va balansga qo'shildi" : "Rad etildi");
     setView(null);
     load();
   };

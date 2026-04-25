@@ -51,10 +51,15 @@ const AdminOrders = () => {
     }
   };
 
-  const setStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("orders").update({ status: status as any, admin_note: note || null }).eq("id", id);
+  const setStatus = async (id: string, approve: boolean) => {
+    const { error } = await supabase.rpc("admin_decide_order", {
+      p_order_id: id, p_approve: approve, p_note: note || null,
+    });
     if (error) return toast.error(error.message);
-    toast.success("Order " + status);
+    // Notify user via Telegram bot (best-effort)
+    supabase.functions.invoke("notify-user", { body: { kind: "order", id, approved: approve, note } })
+      .catch(() => {/* non-blocking */});
+    toast.success(approve ? "Buyurtma tasdiqlandi" : "Buyurtma rad etildi");
     setView(null);
     load();
   };
@@ -169,15 +174,15 @@ const AdminOrders = () => {
                 </div>
               </div>
               <div className="flex flex-wrap justify-end gap-2 pt-2">
-                {view.status !== "approved" && view.status !== "paid" && (
-                  <Button onClick={() => setStatus(view.id, "approved")} className="bg-success text-success-foreground">
-                    <Check className="mr-1 h-4 w-4" /> Approve
-                  </Button>
-                )}
-                {view.status !== "rejected" && (
-                  <Button onClick={() => setStatus(view.id, "rejected")} variant="destructive">
-                    <X className="mr-1 h-4 w-4" /> Reject
-                  </Button>
+                {view.status === "pending" && (
+                  <>
+                    <Button onClick={() => setStatus(view.id, true)} className="bg-success text-success-foreground">
+                      <Check className="mr-1 h-4 w-4" /> Tasdiqlash
+                    </Button>
+                    <Button onClick={() => setStatus(view.id, false)} variant="destructive">
+                      <X className="mr-1 h-4 w-4" /> Rad etish
+                    </Button>
+                  </>
                 )}
               </div>
             </>
