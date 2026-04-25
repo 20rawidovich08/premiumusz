@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 
 const AdminSettings = () => {
   const [s, setS] = useState<Record<string, any>>({});
+  const [webhook, setWebhook] = useState<any>(null);
+  const [webhookBusy, setWebhookBusy] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("settings").select("key,value");
@@ -16,6 +19,16 @@ const AdminSettings = () => {
     setS(map);
   };
   useEffect(() => { load(); }, []);
+
+  const checkWebhook = async () => {
+    setWebhookBusy(true);
+    const { data, error } = await supabase.functions.invoke("set-webhook", { body: { action: "status" } });
+    setWebhookBusy(false);
+    if (error) return toast.error(error.message);
+    setWebhook(data);
+  };
+
+  useEffect(() => { checkWebhook(); }, []);
 
   const save = async (key: string, value: any) => {
     const { error } = await supabase.from("settings").upsert({ key, value });
@@ -94,20 +107,40 @@ const AdminSettings = () => {
       </div>
 
       <div className="mt-6 rounded-2xl glass p-5">
-        <h3 className="font-semibold">Bot webhook</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="font-semibold">Bot webhook</h3>
+          <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${webhook?.registered ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
+            {webhook?.registered ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+            {webhook?.registered ? "Registered" : "Not registered"}
+          </div>
+        </div>
         <p className="mt-2 text-sm text-muted-foreground">
           After deploying, register the webhook with Telegram by calling the <code className="rounded bg-secondary px-1">set-webhook</code> edge function once.
         </p>
+        {webhook?.status?.result?.last_error_message && (
+          <p className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{webhook.status.result.last_error_message}</p>
+        )}
+        {webhook?.telegram?.result?.last_error_message && (
+          <p className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{webhook.telegram.result.last_error_message}</p>
+        )}
+        <div className="mt-3 flex flex-wrap gap-2">
         <Button
-          className="mt-3"
+          disabled={webhookBusy}
           onClick={async () => {
+            setWebhookBusy(true);
             const { data, error } = await supabase.functions.invoke("set-webhook");
+            setWebhookBusy(false);
             if (error) return toast.error(error.message);
-            toast.success(JSON.stringify(data));
+            setWebhook(data);
+            data?.registered ? toast.success("Webhook registered") : toast.error(data?.telegram?.description || "Webhook not registered");
           }}
         >
-          Register webhook now
+          {webhookBusy ? "Checking..." : "Register webhook now"}
         </Button>
+        <Button variant="outline" disabled={webhookBusy} onClick={checkWebhook}>
+          <RefreshCw className="mr-2 h-4 w-4" /> Check status
+        </Button>
+        </div>
       </div>
     </div>
   );
