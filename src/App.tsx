@@ -24,6 +24,7 @@ import AdminStars from "./pages/admin/AdminStars.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminBroadcast from "./pages/admin/AdminBroadcast.tsx";
 import { CompleteProfileDialog } from "./components/CompleteProfileDialog.tsx";
+import { AuthProvider } from "./hooks/useAuth.ts";
 
 const queryClient = new QueryClient();
 
@@ -31,33 +32,35 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <I18nProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <CompleteProfileDialog />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/stars" element={<Stars />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/topup" element={<TopUp />} />
-            <Route path="/buy/premium" element={<BuyPremium />} />
-            <Route path="/buy/stars" element={<BuyStars />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="orders" element={<AdminOrders />} />
-              <Route path="topups" element={<AdminTopups />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="plans" element={<AdminPlans />} />
-              <Route path="stars" element={<AdminStars />} />
-              <Route path="settings" element={<AdminSettings />} />
-              <Route path="broadcast" element={<AdminBroadcast />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <CompleteProfileDialog />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/stars" element={<Stars />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/topup" element={<TopUp />} />
+              <Route path="/buy/premium" element={<BuyPremium />} />
+              <Route path="/buy/stars" element={<BuyStars />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="topups" element={<AdminTopups />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="plans" element={<AdminPlans />} />
+                <Route path="stars" element={<AdminStars />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="broadcast" element={<AdminBroadcast />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </I18nProvider>
   </QueryClientProvider>
