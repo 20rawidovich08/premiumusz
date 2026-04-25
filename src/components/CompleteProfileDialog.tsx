@@ -25,6 +25,7 @@ export function CompleteProfileDialog() {
 
   useEffect(() => {
     if (!user) return;
+    if (window.location.pathname.startsWith("/admin")) return;
     let active = true;
     (async () => {
       const { data } = await supabase
