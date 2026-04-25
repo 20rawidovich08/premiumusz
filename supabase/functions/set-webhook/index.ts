@@ -7,6 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -14,27 +19,31 @@ Deno.serve(async (req) => {
   const WEBHOOK_SECRET = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   if (!TG_TOKEN) {
-    return new Response(JSON.stringify({ error: "TELEGRAM_BOT_TOKEN missing" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "TELEGRAM_BOT_TOKEN missing" }, 400);
   }
 
   // Require admin caller
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "Unauthorized" }, 401);
   }
   const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: authHeader } },
   });
   const { data: claims } = await sb.auth.getClaims(authHeader.replace("Bearer ", ""));
-  if (!claims?.claims?.sub) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+  if (!claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
   const { data: roleRow } = await sb.from("user_roles").select("role").eq("user_id", claims.claims.sub).eq("role", "admin").maybeSingle();
-  if (!roleRow) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+  if (!roleRow) return json({ error: "Forbidden" }, 403);
 
+  const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const webhookUrl = `${SUPABASE_URL}/functions/v1/telegram-bot`;
+
+  if (body?.action === "status") {
+    const infoRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getWebhookInfo`);
+    const info = await infoRes.json();
+    return json({ webhook: webhookUrl, telegram: info, registered: info?.result?.url === webhookUrl });
+  }
+
   const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/setWebhook`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -45,7 +54,7 @@ Deno.serve(async (req) => {
     }),
   });
   const data = await res.json();
-  return new Response(JSON.stringify({ webhook: webhookUrl, telegram: data }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  const infoRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getWebhookInfo`);
+  const info = await infoRes.json();
+  return json({ webhook: webhookUrl, telegram: data, status: info, registered: info?.result?.url === webhookUrl });
 });
