@@ -86,19 +86,12 @@ Deno.serve(async (req) => {
       if (!tx) return new Response(JSON.stringify({ ok: true, skipped: "no_tx" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      // Bot top-ups encode telegram_id in admin_note as "BOT:<id>:<name>"
       let chatId: number | null = null;
-      if (tx.admin_note?.startsWith("BOT:")) {
-        const parts = tx.admin_note.split(":");
-        chatId = Number(parts[1]) || null;
-        // For bot top-ups, the user_id is bot_users.id, not profile id — credit the bot wallet.
-        if (approved) {
-          const { data: bu } = await admin.from("bot_users").select("balance,telegram_id").eq("id", tx.user_id).maybeSingle();
-          if (bu) {
-            await admin.from("bot_users").update({ balance: Number(bu.balance) + Number(tx.amount_uzs) }).eq("id", tx.user_id);
-            chatId = bu.telegram_id;
-          }
-        }
+      if (tx.bot_user_id) {
+        const { data: bu } = await admin.from("bot_users").select("telegram_id").eq("id", tx.bot_user_id).maybeSingle();
+        chatId = bu?.telegram_id ?? null;
+      } else if (tx.admin_note?.startsWith("BOT:")) {
+        chatId = Number(tx.admin_note.split(":")[1]) || null;
       }
       if (!chatId) return new Response(JSON.stringify({ ok: true, skipped: "no_chat" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

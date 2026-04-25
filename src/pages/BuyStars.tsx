@@ -64,6 +64,8 @@ const BuyStars = () => {
     setBusy(false);
     if (error) return toast.error(error.message);
     const num = (data as any[])?.[0]?.order_number;
+    const id = (data as any[])?.[0]?.order_id;
+    if (id) supabase.functions.invoke("notify-admin", { body: { order_id: id } }).catch(() => undefined);
     setDone({ num });
     toast.success(t("buy.success"));
   };

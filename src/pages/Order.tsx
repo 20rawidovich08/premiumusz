@@ -100,6 +100,8 @@ const Order = () => {
       });
       if (error) throw error;
       const num = (data as any[])?.[0]?.order_number;
+      const id = (data as any[])?.[0]?.id;
+      if (id) supabase.functions.invoke("notify-admin", { body: { order_id: id } }).catch(() => undefined);
       setOrderNumber(num);
       toast.success(t("order.success"));
     } catch (e: any) {
