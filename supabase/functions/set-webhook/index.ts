@@ -30,9 +30,9 @@ Deno.serve(async (req) => {
   const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: claims } = await sb.auth.getClaims(authHeader.replace("Bearer ", ""));
-  if (!claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
-  const { data: roleRow } = await sb.from("user_roles").select("role").eq("user_id", claims.claims.sub).eq("role", "admin").maybeSingle();
+  const { data: authData, error: authError } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
+  if (authError || !authData?.user?.id) return json({ error: "Unauthorized" }, 401);
+  const { data: roleRow } = await sb.from("user_roles").select("role").eq("user_id", authData.user.id).eq("role", "admin").maybeSingle();
   if (!roleRow) return json({ error: "Forbidden" }, 403);
 
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
