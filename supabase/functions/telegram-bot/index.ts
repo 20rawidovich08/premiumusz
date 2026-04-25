@@ -586,7 +586,7 @@ Deno.serve(async (req) => {
       // Bot top-ups bypass profiles RLS — store as bot transaction (use service role).
       // Store linked to bot_user via admin_note for traceability; balance sits on bot_users.
       const { data: tx } = await supabase.from("balance_transactions").insert({
-        user_id: "00000000-0000-0000-0000-000000000000",
+        user_id: null,
         bot_user_id: user.id,
         type: "topup",
         status: "pending",
