@@ -26,7 +26,7 @@ export type Database = {
           status: Database["public"]["Enums"]["tx_status"]
           type: Database["public"]["Enums"]["tx_type"]
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           admin_note?: string | null
@@ -39,7 +39,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["tx_status"]
           type: Database["public"]["Enums"]["tx_type"]
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           admin_note?: string | null
@@ -52,7 +52,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["tx_status"]
           type?: Database["public"]["Enums"]["tx_type"]
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
