@@ -1,9 +1,9 @@
 import { useI18n } from "@/lib/i18n";
 
 type AdminLang = "uz" | "ru" | "en";
-type AdminKey = keyof typeof adminDict.uz;
+type AdminKey = keyof typeof uzDict;
 
-const adminDict = {
+const uzDict = {
   uz: {
     dashboard: "Boshqaruv paneli",
     orders: "Buyurtmalar",
@@ -92,8 +92,9 @@ const adminDict = {
     sendBroadcast: "Xabarni yuborish",
     sending: "Yuborilmoqda...",
     sent: "Yuborildi",
-  },
-  ru: {
+  };
+
+const ruDict = {
     dashboard: "Панель управления",
     orders: "Заказы",
     topups: "Пополнения",
@@ -181,11 +182,9 @@ const adminDict = {
     sendBroadcast: "Отправить рассылку",
     sending: "Отправка...",
     sent: "Отправлено",
-  },
-  en: {} as Record<string, string>,
-} as const;
+  };
 
-adminDict.en = adminDict.ru;
+const adminDict: Record<AdminLang, Record<string, string>> = { uz: uzDict, ru: ruDict, en: ruDict };
 
 export function useAdminT() {
   const { lang } = useI18n();
