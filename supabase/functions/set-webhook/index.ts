@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
   const TG_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
   const WEBHOOK_SECRET = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   if (!TG_TOKEN) {
     return json({ error: "TELEGRAM_BOT_TOKEN missing" }, 400);
   }
@@ -27,13 +28,14 @@ Deno.serve(async (req) => {
   if (!authHeader?.startsWith("Bearer ")) {
     return json({ error: "Unauthorized" }, 401);
   }
-  const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+  const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: authData, error: authError } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
+  const { data: authData, error: authError } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
   if (authError || !authData?.user?.id) return json({ error: "Unauthorized" }, 401);
-  const { data: roleRow } = await sb.from("user_roles").select("role").eq("user_id", authData.user.id).eq("role", "admin").maybeSingle();
-  if (!roleRow) return json({ error: "Forbidden" }, 403);
+  const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
+  const { data: isAdmin } = await adminClient.rpc("has_role", { _user_id: authData.user.id, _role: "admin" });
+  if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const webhookUrl = `${SUPABASE_URL}/functions/v1/telegram-bot`;
@@ -41,7 +43,7 @@ Deno.serve(async (req) => {
   if (body?.action === "status") {
     const infoRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getWebhookInfo`);
     const info = await infoRes.json();
-    return json({ webhook: webhookUrl, telegram: info, registered: info?.result?.url === webhookUrl });
+    return json({ webhook: webhookUrl, telegram: info, registered: info?.result?.url === webhookUrl, pending_update_count: info?.result?.pending_update_count ?? 0, last_error_message: info?.result?.last_error_message ?? null });
   }
 
   const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/setWebhook`, {
@@ -56,5 +58,5 @@ Deno.serve(async (req) => {
   const data = await res.json();
   const infoRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getWebhookInfo`);
   const info = await infoRes.json();
-  return json({ webhook: webhookUrl, telegram: data, status: info, registered: info?.result?.url === webhookUrl });
+  return json({ webhook: webhookUrl, telegram: data, status: info, registered: info?.result?.url === webhookUrl, pending_update_count: info?.result?.pending_update_count ?? 0, last_error_message: info?.result?.last_error_message ?? null });
 });
