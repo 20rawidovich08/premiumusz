@@ -5,8 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Check, X, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAdminT } from "@/lib/adminI18n";
 
 const AdminTopups = () => {
+  const t = useAdminT();
   const [rows, setRows] = useState<any[]>([]);
   const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [view, setView] = useState<any>(null);
@@ -16,13 +18,24 @@ const AdminTopups = () => {
   const load = async () => {
     let q = supabase
       .from("balance_transactions")
-      .select("*, profiles!balance_transactions_user_id_fkey(full_name,phone,telegram_username)")
+      .select("*")
       .eq("type", "topup")
       .order("created_at", { ascending: false })
       .limit(200);
     if (filter !== "all") q = q.eq("status", filter);
-    const { data } = await q;
-    setRows((data as any[]) ?? []);
+    const { data, error } = await q;
+    if (error) return toast.error(error.message);
+
+    const list = (data as any[]) ?? [];
+    const profileIds = list.filter((r) => r.user_id).map((r) => r.user_id);
+    const botIds = list.filter((r) => r.bot_user_id).map((r) => r.bot_user_id);
+    const [{ data: profiles }, { data: bots }] = await Promise.all([
+      profileIds.length ? supabase.from("profiles").select("id,full_name,phone,telegram_username").in("id", profileIds) : Promise.resolve({ data: [] as any[] }),
+      botIds.length ? supabase.from("bot_users").select("id,full_name,phone,username,telegram_id").in("id", botIds) : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const profileMap = new Map(((profiles as any[]) ?? []).map((p) => [p.id, p]));
+    const botMap = new Map(((bots as any[]) ?? []).map((b) => [b.id, b]));
+    setRows(list.map((r) => ({ ...r, person: r.bot_user_id ? botMap.get(r.bot_user_id) : profileMap.get(r.user_id), source: r.bot_user_id ? "bot" : "web" })));
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
@@ -43,17 +56,17 @@ const AdminTopups = () => {
       p_tx_id: view.id, p_approve: approve, p_note: note || null,
     });
     if (error) return toast.error(error.message);
-    // Notify via Telegram bot (best-effort)
-    supabase.functions.invoke("notify-user", { body: { kind: "topup", id: view.id, approved: approve, note } })
-      .catch(() => {});
-    toast.success(approve ? "Tasdiqlandi va balansga qo'shildi" : "Rad etildi");
+    supabase.functions.invoke("notify-user", { body: { kind: "topup", id: view.id, approved: approve, note } }).catch(() => {});
+    toast.success(approve ? t("approveAddBalance") : t("rejected"));
     setView(null);
     load();
   };
 
+  const statusLabel = (s: string) => t((s === "approved" || s === "rejected" || s === "pending" ? s : "all") as any);
+
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">Top-ups</h1>
+      <h1 className="font-display text-3xl font-bold">{t("topups")}</h1>
       <div className="mt-6 flex flex-wrap items-center gap-2">
         {(["pending", "approved", "rejected", "all"] as const).map((s) => (
           <Button
@@ -63,19 +76,19 @@ const AdminTopups = () => {
             className={filter === s ? "bg-gradient-primary text-primary-foreground" : ""}
             onClick={() => setFilter(s)}
           >
-            {s}
+            {statusLabel(s)}
           </Button>
         ))}
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-2xl glass">
-        <table className="w-full text-sm">
+      <div className="mt-6 overflow-x-auto rounded-2xl glass">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="p-3">User</th>
-              <th className="p-3">Amount</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Date</th>
+              <th className="p-3">{t("users")}</th>
+              <th className="p-3">{t("amount")}</th>
+              <th className="p-3">{t("status")}</th>
+              <th className="p-3">{t("date")}</th>
               <th className="p-3"></th>
             </tr>
           </thead>
@@ -83,11 +96,11 @@ const AdminTopups = () => {
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-border/40 hover:bg-secondary/20">
                 <td className="p-3">
-                  <div>{r.profiles?.full_name || "-"}</div>
-                  <div className="text-xs text-muted-foreground">{r.profiles?.phone || r.profiles?.telegram_username || "-"}</div>
+                  <div>{r.person?.full_name || "-"} <span className="text-xs text-muted-foreground">({r.source})</span></div>
+                  <div className="text-xs text-muted-foreground">{r.person?.phone || r.person?.telegram_username || (r.person?.username ? `@${r.person.username}` : "-")}</div>
                 </td>
                 <td className="p-3 font-medium">{Number(r.amount_uzs).toLocaleString("ru-RU")} UZS</td>
-                <td className="p-3"><span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{r.status}</span></td>
+                <td className="p-3"><span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{statusLabel(r.status)}</span></td>
                 <td className="p-3 text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
                 <td className="p-3">
                   <Button size="sm" variant="ghost" onClick={() => open(r)}>
@@ -96,7 +109,7 @@ const AdminTopups = () => {
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No top-ups</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">{t("noReceipt")}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -106,21 +119,16 @@ const AdminTopups = () => {
           {view && (
             <>
               <DialogHeader>
-                <DialogTitle>Top-up review</DialogTitle>
+                <DialogTitle>{t("topupReview")}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-3 text-sm">
-                  <div><span className="text-muted-foreground">User: </span>{view.profiles?.full_name || "-"}</div>
-                  <div><span className="text-muted-foreground">Phone: </span>{view.profiles?.phone || "-"}</div>
-                  <div><span className="text-muted-foreground">Telegram: </span>{view.profiles?.telegram_username || "-"}</div>
-                  <div><span className="text-muted-foreground">Amount: </span><b>{Number(view.amount_uzs).toLocaleString("ru-RU")} UZS</b></div>
-                  <div><span className="text-muted-foreground">Status: </span>{view.status}</div>
-                  <Textarea
-                    placeholder="Admin note"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    rows={3}
-                  />
+                  <div><span className="text-muted-foreground">{t("users")}: </span>{view.person?.full_name || "-"}</div>
+                  <div><span className="text-muted-foreground">{t("phone")}: </span>{view.person?.phone || "-"}</div>
+                  <div><span className="text-muted-foreground">Telegram: </span>{view.person?.telegram_username || (view.person?.username ? `@${view.person.username}` : "-")}</div>
+                  <div><span className="text-muted-foreground">{t("amount")}: </span><b>{Number(view.amount_uzs).toLocaleString("ru-RU")} UZS</b></div>
+                  <div><span className="text-muted-foreground">{t("status")}: </span>{statusLabel(view.status)}</div>
+                  <Textarea placeholder={t("adminNote")} value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
                 </div>
                 <div>
                   {receiptUrl ? (
@@ -129,7 +137,7 @@ const AdminTopups = () => {
                     </a>
                   ) : (
                     <div className="grid h-full place-items-center rounded-xl bg-secondary/40 p-6 text-sm text-muted-foreground">
-                      No receipt
+                      {t("noReceipt")}
                     </div>
                   )}
                 </div>
@@ -137,10 +145,10 @@ const AdminTopups = () => {
               {view.status === "pending" && (
                 <div className="flex flex-wrap justify-end gap-2 pt-2">
                   <Button onClick={() => decide(true)} className="bg-success text-success-foreground">
-                    <Check className="mr-1 h-4 w-4" /> Approve & add balance
+                    <Check className="mr-1 h-4 w-4" /> {t("approveAddBalance")}
                   </Button>
                   <Button onClick={() => decide(false)} variant="destructive">
-                    <X className="mr-1 h-4 w-4" /> Reject
+                    <X className="mr-1 h-4 w-4" /> {t("reject")}
                   </Button>
                 </div>
               )}
