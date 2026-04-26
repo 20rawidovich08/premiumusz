@@ -3,40 +3,44 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag, Star, Wallet } from "lucide-react";
+import { useAdminT } from "@/lib/adminI18n";
+import { requestAdminNotificationPermission, useAdminNotifications } from "@/hooks/useAdminNotifications";
+import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag, Star, Wallet, Bell } from "lucide-react";
 
 const items = [
-  { to: "/admin", end: true, icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/admin/orders", icon: ShoppingBag, label: "Orders" },
-  { to: "/admin/topups", icon: Wallet, label: "Top-ups" },
-  { to: "/admin/users", icon: Users, label: "Users" },
-  { to: "/admin/plans", icon: Tag, label: "Plans" },
-  { to: "/admin/stars", icon: Star, label: "Stars" },
-  { to: "/admin/settings", icon: Settings, label: "Settings" },
-  { to: "/admin/broadcast", icon: Megaphone, label: "Broadcast" },
-];
+  { to: "/admin", end: true, icon: LayoutDashboard, labelKey: "dashboard" },
+  { to: "/admin/orders", icon: ShoppingBag, labelKey: "orders" },
+  { to: "/admin/topups", icon: Wallet, labelKey: "topups" },
+  { to: "/admin/users", icon: Users, labelKey: "users" },
+  { to: "/admin/plans", icon: Tag, labelKey: "plans" },
+  { to: "/admin/stars", icon: Star, labelKey: "stars" },
+  { to: "/admin/settings", icon: Settings, labelKey: "settings" },
+  { to: "/admin/broadcast", icon: Megaphone, labelKey: "broadcast" },
+] as const;
 
 export const AdminLayout = () => {
   const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const t = useAdminT();
+  useAdminNotifications();
 
   useEffect(() => {
     if (!loading && !user) navigate("/admin/login", { replace: true });
   }, [user, loading, navigate]);
 
-  if (loading) return <div className="grid min-h-screen place-items-center text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="grid min-h-screen place-items-center text-muted-foreground">{t("loading")}</div>;
   if (!user) return null;
 
   if (!isAdmin) {
     return (
       <div className="grid min-h-screen place-items-center p-6 text-center">
         <div className="rounded-3xl glass max-w-md p-8">
-          <h2 className="font-display text-2xl font-bold">Not authorized</h2>
+          <h2 className="font-display text-2xl font-bold">{t("notAuthorized")}</h2>
           <p className="mt-2 text-muted-foreground">
             Your account does not have admin access. Contact a workspace admin to grant the <code className="rounded bg-secondary px-1">admin</code> role to <span className="font-mono text-foreground">{user.email}</span>.
           </p>
           <Button className="mt-6" onClick={async () => { await supabase.auth.signOut(); navigate("/admin/login"); }}>
-            Sign out
+            {t("signOut")}
           </Button>
         </div>
       </div>
@@ -65,12 +69,20 @@ export const AdminLayout = () => {
               }
             >
               <it.icon className="h-4 w-4" />
-              {it.label}
+              {t(it.labelKey)}
             </NavLink>
           ))}
         </nav>
         <div className="space-y-2 border-t border-border/50 p-3 text-xs">
           <div className="truncate px-2 text-muted-foreground">{user.email}</div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => requestAdminNotificationPermission(t("notificationsEnabled"))}
+          >
+            <Bell className="mr-2 h-4 w-4" /> {t("enableNotifications")}
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -80,7 +92,7 @@ export const AdminLayout = () => {
               navigate("/admin/login");
             }}
           >
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
+            <LogOut className="mr-2 h-4 w-4" /> {t("signOut")}
           </Button>
         </div>
       </aside>
