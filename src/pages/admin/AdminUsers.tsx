@@ -87,8 +87,12 @@ const AdminUsers = () => {
     const delta = amount * direction;
     const newBal = Number(u.balance) + delta;
     if (newBal < 0) return toast.error(t("balanceNegative"));
-    const table = u.kind === "bot" ? "bot_users" : "profiles";
-    const { error } = await supabase.from(table).update({ balance: newBal }).eq("id", u.id);
+    const { error } = await (supabase.rpc as any)("admin_adjust_user_balance", {
+      p_user_kind: u.kind,
+      p_user_id: u.id,
+      p_delta: delta,
+      p_note: "Admin panel",
+    });
     if (error) return toast.error(error.message);
     toast.success(t("balanceUpdated"));
     setAmounts((prev) => ({ ...prev, [`${u.kind}-${u.id}`]: "" }));
