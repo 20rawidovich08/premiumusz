@@ -12,11 +12,13 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
 
+const normalizeWebhookSecret = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 256);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const TG_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const WEBHOOK_SECRET = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
+  const WEBHOOK_SECRET = normalizeWebhookSecret(Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   if (!TG_TOKEN) {
@@ -39,6 +41,12 @@ Deno.serve(async (req) => {
 
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const webhookUrl = `${SUPABASE_URL}/functions/v1/telegram-bot`;
+  const webhookPayload = {
+    url: webhookUrl,
+    secret_token: WEBHOOK_SECRET || undefined,
+    allowed_updates: ["message", "callback_query", "pre_checkout_query"],
+    drop_pending_updates: true,
+  };
 
   if (body?.action === "status") {
     const infoRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getWebhookInfo`);
@@ -49,11 +57,7 @@ Deno.serve(async (req) => {
   const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/setWebhook`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: webhookUrl,
-      secret_token: WEBHOOK_SECRET || undefined,
-      allowed_updates: ["message", "callback_query", "pre_checkout_query"],
-    }),
+    body: JSON.stringify(webhookPayload),
   });
   const data = await res.json();
   const infoRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getWebhookInfo`);
