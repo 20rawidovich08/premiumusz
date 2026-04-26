@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const TG_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const ADMIN_CHAT_ID = Deno.env.get("TELEGRAM_ADMIN_CHAT_ID")!;
-const WEBHOOK_SECRET = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
+const RAW_WEBHOOK_SECRET = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -17,6 +17,8 @@ const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-
 
 const fmt = (n: number | string) => Number(n).toLocaleString("ru-RU");
 const USERNAME_RE = /^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
+const normalizeWebhookSecret = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 256);
+const WEBHOOK_SECRET = normalizeWebhookSecret(RAW_WEBHOOK_SECRET);
 
 async function tg(method: string, body: unknown) {
   const res = await fetch(`${TG_API}/${method}`, {
@@ -623,7 +625,7 @@ Deno.serve(async (req) => {
         await tg("sendMessage", {
           chat_id: chatId,
           text:
-            "👋 <b>Assalomu alaykum!</b>\n\nTelegram Premium va Stars do'koniga xush kelibsiz.\n\n" +
+            `👋 <b>Assalomu alaykum, ${user.full_name || from.first_name || "do'stim"}!</b>\n\nTelegram Premium va Stars do'koniga xush kelibsiz.\n\n` +
             "Boshlash uchun telefon raqamingizni yuboring 👇",
           parse_mode: "HTML",
           reply_markup: shareContactKeyboard(),
