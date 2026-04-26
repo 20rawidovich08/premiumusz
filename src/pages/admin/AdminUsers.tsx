@@ -23,6 +23,7 @@ const AdminUsers = () => {
   const t = useAdminT();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
 
   const load = async () => {
     const [{ data: bots, error: botError }, { data: profiles, error: profileError }] = await Promise.all([
@@ -79,13 +80,22 @@ const AdminUsers = () => {
     load();
   };
 
-  const adjustBalance = async (u: UserRow, delta: number) => {
+  const adjustBalance = async (u: UserRow, direction: 1 | -1) => {
+    const rawAmount = amounts[`${u.kind}-${u.id}`] || "";
+    const amount = Number(rawAmount.replace(/\s/g, "").replace(/,/g, ""));
+    if (!amount || amount <= 0) return toast.error(t("amountInvalid"));
+    const delta = amount * direction;
     const newBal = Number(u.balance) + delta;
     if (newBal < 0) return toast.error(t("balanceNegative"));
-    const table = u.kind === "bot" ? "bot_users" : "profiles";
-    const { error } = await supabase.from(table).update({ balance: newBal }).eq("id", u.id);
+    const { error } = await (supabase.rpc as any)("admin_adjust_user_balance", {
+      p_user_kind: u.kind,
+      p_user_id: u.id,
+      p_delta: delta,
+      p_note: "Admin panel",
+    });
     if (error) return toast.error(error.message);
     toast.success(t("balanceUpdated"));
+    setAmounts((prev) => ({ ...prev, [`${u.kind}-${u.id}`]: "" }));
     load();
   };
 
@@ -136,11 +146,18 @@ const AdminUsers = () => {
                   )}
                 </td>
                 <td className="p-3">
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => adjustBalance(u, 5000)}>
+                  <div className="flex min-w-[210px] items-center gap-1">
+                    <Input
+                      inputMode="numeric"
+                      placeholder={t("amount")}
+                      value={amounts[`${u.kind}-${u.id}`] || ""}
+                      onChange={(e) => setAmounts((prev) => ({ ...prev, [`${u.kind}-${u.id}`]: e.target.value }))}
+                      className="h-8 w-28"
+                    />
+                    <Button size="icon" variant="ghost" onClick={() => adjustBalance(u, 1)}>
                       <Plus className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => adjustBalance(u, -5000)}>
+                    <Button size="icon" variant="ghost" onClick={() => adjustBalance(u, -1)}>
                       <Minus className="h-3.5 w-3.5" />
                     </Button>
                     {u.kind === "bot" && (
@@ -156,7 +173,6 @@ const AdminUsers = () => {
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">+/- 5000 UZS</p>
     </div>
   );
 };

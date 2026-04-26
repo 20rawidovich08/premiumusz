@@ -421,6 +421,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_adjust_user_balance: {
+        Args: {
+          p_delta: number
+          p_note?: string
+          p_user_id: string
+          p_user_kind: string
+        }
+        Returns: undefined
+      }
       admin_analytics: { Args: never; Returns: Json }
       admin_decide_order: {
         Args: { p_approve: boolean; p_note?: string; p_order_id: string }
