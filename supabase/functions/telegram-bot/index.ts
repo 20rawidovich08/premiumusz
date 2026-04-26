@@ -436,6 +436,16 @@ Deno.serve(async (req) => {
       return new Response("ok");
     }
 
+    if (!user.phone && !text.startsWith("/start")) {
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: `👋 <b>Assalomu alaykum, ${user.full_name || from.first_name || "do'stim"}!</b>\n\nAvval telefon raqamingizni yuboring 👇`,
+        parse_mode: "HTML",
+        reply_markup: shareContactKeyboard(),
+      });
+      return new Response("ok");
+    }
+
     // ============ Wizard steps (multi-step flows) ============
     const step = getWizard(user);
 
