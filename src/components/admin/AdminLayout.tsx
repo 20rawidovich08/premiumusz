@@ -61,7 +61,7 @@ export const AdminLayout = () => {
             <NavLink
               key={it.to}
               to={it.to}
-              end={it.end}
+              end={"end" in it ? it.end : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
