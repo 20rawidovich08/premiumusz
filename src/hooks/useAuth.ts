@@ -18,20 +18,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const applySession = async (s: Session | null) => {
+    let lastUserId: string | null = null;
+
+    const applySession = async (s: Session | null, initial = false) => {
+      const nextUser = s?.user ?? null;
       setSession(s);
-      setUser(s?.user ?? null);
-      setIsAdmin(s?.user ? await getAdmin(s.user.id) : false);
-      setLoading(false);
+      setUser(nextUser);
+      if (nextUser?.id !== lastUserId) {
+        lastUserId = nextUser?.id ?? null;
+        setIsAdmin(nextUser ? await getAdmin(nextUser.id) : false);
+      }
+      if (initial) setLoading(false);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setLoading(true);
       setTimeout(() => { applySession(s); }, 0);
     });
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
-      applySession(s);
+      applySession(s, true);
     });
 
     return () => subscription.unsubscribe();

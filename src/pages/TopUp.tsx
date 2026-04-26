@@ -57,11 +57,12 @@ const TopUp = () => {
         upsert: false,
       });
       if (upErr) throw upErr;
-      const { error } = await supabase.rpc("request_topup", {
+      const { data: txId, error } = await supabase.rpc("request_topup", {
         p_amount_uzs: amount,
         p_receipt_path: path,
       });
       if (error) throw error;
+      if (txId) supabase.functions.invoke("notify-admin", { body: { topup_id: txId } }).catch(() => undefined);
       setDone(true);
       toast.success(t("topup.success"));
     } catch (e: any) {
