@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Star, Plus, Trash2 } from "lucide-react";
+import { useAdminT } from "@/lib/adminI18n";
 
 const AdminStars = () => {
+  const t = useAdminT();
   const [packages, setPackages] = useState<any[]>([]);
   const [rate, setRate] = useState<number>(220);
   const [minStars, setMinStars] = useState<number>(50);
@@ -28,7 +30,7 @@ const AdminStars = () => {
   const saveSetting = async (key: string, value: any) => {
     const { error } = await supabase.from("settings").upsert({ key, value });
     if (error) return toast.error(error.message);
-    toast.success("Saved — yangi narxlar bir zumda saytda yangilanadi");
+    toast.success(t("saved"));
   };
 
   const addPackage = async () => {
@@ -57,12 +59,12 @@ const AdminStars = () => {
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl glass p-5 space-y-4">
-          <h3 className="font-semibold">Kurs sozlamalari</h3>
+          <h3 className="font-semibold">{t("settings")}</h3>
           <div>
             <Label>1 ⭐ = ? UZS</Label>
             <div className="mt-1.5 flex gap-2">
               <Input type="number" value={rate} onChange={(e) => setRate(Number(e.target.value))} />
-              <Button onClick={() => saveSetting("stars_rate_uzs", rate)}>Saqlash</Button>
+              <Button onClick={() => saveSetting("stars_rate_uzs", rate)}>{t("saved")}</Button>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               Joriy: <b>{rate} UZS</b>. Bu narx o'zgartirilsa barcha paketlar saytda darhol yangilanadi.
@@ -72,16 +74,16 @@ const AdminStars = () => {
             <Label>Minimum stars</Label>
             <div className="mt-1.5 flex gap-2">
               <Input type="number" value={minStars} onChange={(e) => setMinStars(Number(e.target.value))} />
-              <Button onClick={() => saveSetting("min_stars", minStars)}>Saqlash</Button>
+              <Button onClick={() => saveSetting("min_stars", minStars)}>{t("saved")}</Button>
             </div>
           </div>
         </div>
 
         <div className="rounded-2xl glass p-5 space-y-4">
-          <h3 className="font-semibold">Yangi paket qo'shish</h3>
+          <h3 className="font-semibold">{t("addPackage")}</h3>
           <div className="flex gap-2">
             <Input type="number" min={minStars} step={50} value={newStars} onChange={(e) => setNewStars(Number(e.target.value))} />
-            <Button onClick={addPackage}><Plus className="h-4 w-4 mr-1" /> Qo'shish</Button>
+            <Button onClick={addPackage}><Plus className="h-4 w-4 mr-1" /> {t("add")}</Button>
           </div>
           <p className="text-xs text-muted-foreground">Narxi avtomatik: {newStars} × {rate} = {(newStars * rate).toLocaleString("ru-RU")} UZS</p>
         </div>
@@ -92,8 +94,8 @@ const AdminStars = () => {
           <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="p-3">Stars</th>
-              <th className="p-3">Narx (avto)</th>
-              <th className="p-3">Status</th>
+              <th className="p-3">{t("priceUzs")}</th>
+              <th className="p-3">{t("status")}</th>
               <th className="p-3"></th>
             </tr>
           </thead>
@@ -106,12 +108,12 @@ const AdminStars = () => {
                 <td className="p-3">{(p.stars * rate).toLocaleString("ru-RU")} UZS</td>
                 <td className="p-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs ${p.active ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"}`}>
-                    {p.active ? "Faol" : "O'chiq"}
+                    {p.active ? t("active") : t("disable")}
                   </span>
                 </td>
                 <td className="p-3 flex gap-2 justify-end">
                   <Button size="sm" variant="outline" onClick={() => togglePkg(p.id, p.active)}>
-                    {p.active ? "O'chirish" : "Yoqish"}
+                    {p.active ? t("disable") : t("enable")}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => deletePkg(p.id)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -119,7 +121,7 @@ const AdminStars = () => {
                 </td>
               </tr>
             ))}
-            {packages.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Paketlar yo'q</td></tr>}
+            {packages.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">{t("noOrders")}</td></tr>}
           </tbody>
         </table>
       </div>
