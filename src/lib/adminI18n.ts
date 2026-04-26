@@ -4,7 +4,6 @@ type AdminLang = "uz" | "ru" | "en";
 type AdminKey = keyof typeof uzDict;
 
 const uzDict = {
-  uz: {
     dashboard: "Boshqaruv paneli",
     orders: "Buyurtmalar",
     topups: "To‘ldirishlar",

@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, ShoppingBag, Wallet, TrendingUp, Crown, Star } from "lucide-react";
 import {
-import { useAdminT } from "@/lib/adminI18n";
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { useAdminT } from "@/lib/adminI18n";
 
 interface Analytics {
   total_users: number;
