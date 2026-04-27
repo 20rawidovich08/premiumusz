@@ -196,7 +196,12 @@ type Step =
   | { kind: "topup_amount" }
   | { kind: "topup_receipt"; amount: number }
   | { kind: "edit_phone" }
-  | { kind: "edit_username" };
+  | { kind: "edit_username" }
+  | { kind: "adm_broadcast" }
+  | { kind: "adm_dm_pick" }
+  | { kind: "adm_dm_text"; targetTgId: number }
+  | { kind: "adm_user_search" }
+  | { kind: "adm_user_balance"; targetUserId: string; targetTgId: number };
 
 async function setWizard(userId: string, step: Step) {
   await supabase.from("bot_users").update({ wizard_state: step as any }).eq("id", userId);
@@ -320,6 +325,70 @@ async function showAdminPanel(chatId: number) {
         [{ text: `📦 Buyurtmalar (${pendingOrders ?? 0})`, callback_data: "adm:orders" }],
         [{ text: `💳 To'ldirishlar (${pendingTopups ?? 0})`, callback_data: "adm:topups" }],
         [{ text: "📊 Statistika", callback_data: "adm:stats" }],
+        [{ text: "👥 Foydalanuvchilar", callback_data: "adm:users" }],
+        [{ text: "🔍 Foydalanuvchi qidirish", callback_data: "adm:user_search" }],
+        [{ text: "📢 Barchaga xabar", callback_data: "adm:bcast" }],
+        [{ text: "✉️ Bitta foydalanuvchiga xabar", callback_data: "adm:dm" }],
+      ],
+    },
+  });
+}
+
+async function showAdminUsers(chatId: number, offset = 0) {
+  const PAGE = 10;
+  const { data: users, count } = await supabase
+    .from("bot_users")
+    .select("id,telegram_id,full_name,username,phone,balance,banned", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PAGE - 1);
+  if (!users?.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Foydalanuvchilar yo'q." });
+    return;
+  }
+  const lines = users.map((u: any, i: number) =>
+    `${offset + i + 1}. ${u.banned ? "🚫 " : ""}<b>${u.full_name || "-"}</b> ${u.username ? "@" + u.username : ""}\n` +
+    `   🆔 <code>${u.telegram_id}</code> · 💰 ${fmt(u.balance)} UZS · 📞 ${u.phone || "-"}`
+  );
+  const buttons: any[][] = users.map((u: any) => [
+    { text: `⚙️ ${u.full_name || u.telegram_id}`, callback_data: `adm:u:${u.id}` },
+  ]);
+  const nav: any[] = [];
+  if (offset > 0) nav.push({ text: "⬅️", callback_data: `adm:users_p:${Math.max(0, offset - PAGE)}` });
+  if ((count ?? 0) > offset + PAGE) nav.push({ text: "➡️", callback_data: `adm:users_p:${offset + PAGE}` });
+  if (nav.length) buttons.push(nav);
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: `👥 <b>Foydalanuvchilar</b> (jami: ${count ?? 0})\n\n` + lines.join("\n\n"),
+    parse_mode: "HTML",
+    reply_markup: { inline_keyboard: buttons },
+  });
+}
+
+async function showAdminUserCard(chatId: number, userId: string) {
+  const { data: u } = await supabase.from("bot_users").select("*").eq("id", userId).maybeSingle();
+  if (!u) {
+    await tg("sendMessage", { chat_id: chatId, text: "Foydalanuvchi topilmadi." });
+    return;
+  }
+  const { count: orders } = await supabase
+    .from("orders").select("*", { count: "exact", head: true }).eq("bot_user_id", userId);
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text:
+      `👤 <b>${u.full_name || "-"}</b> ${u.username ? "@" + u.username : ""}\n\n` +
+      `🆔 <code>${u.telegram_id}</code>\n` +
+      `📞 ${u.phone || "-"}\n` +
+      `💰 Balans: <b>${fmt(u.balance)} UZS</b>\n` +
+      `📦 Buyurtmalar: <b>${orders ?? 0}</b>\n` +
+      `🎫 Ref kod: <code>${u.referral_code}</code>\n` +
+      `Status: ${u.banned ? "🚫 Bloklangan" : "✅ Faol"}`,
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💵 Balansni o'zgartirish", callback_data: `adm:u_bal:${u.id}` }],
+        [{ text: "✉️ Xabar yuborish", callback_data: `adm:u_dm:${u.telegram_id}` }],
+        [{ text: u.banned ? "✅ Blokdan chiqarish" : "🚫 Bloklash", callback_data: `adm:u_ban:${u.id}` }],
+        [{ text: "⬅️ Foydalanuvchilar", callback_data: "adm:users" }],
       ],
     },
   });
@@ -525,6 +594,72 @@ Deno.serve(async (req) => {
         if (data === "adm:orders") { await showAdminPendingOrders(chatId); return new Response("ok"); }
         if (data === "adm:topups") { await showAdminPendingTopups(chatId); return new Response("ok"); }
         if (data === "adm:stats") { await showAdminStats(chatId); return new Response("ok"); }
+        if (data === "adm:users") { await showAdminUsers(chatId, 0); return new Response("ok"); }
+        if (data.startsWith("adm:users_p:")) { await showAdminUsers(chatId, Number(data.slice(12)) || 0); return new Response("ok"); }
+        if (data.startsWith("adm:u:")) { await showAdminUserCard(chatId, data.slice(6)); return new Response("ok"); }
+        if (data.startsWith("adm:u_ban:")) {
+          const uid = data.slice(10);
+          const { data: bu } = await supabase.from("bot_users").select("banned").eq("id", uid).single();
+          await supabase.from("bot_users").update({ banned: !bu?.banned }).eq("id", uid);
+          await tg("sendMessage", { chat_id: chatId, text: bu?.banned ? "✅ Blokdan chiqarildi." : "🚫 Bloklandi." });
+          await showAdminUserCard(chatId, uid);
+          return new Response("ok");
+        }
+        if (data.startsWith("adm:u_bal:")) {
+          const uid = data.slice(10);
+          const { data: bu } = await supabase.from("bot_users").select("telegram_id,balance,full_name").eq("id", uid).single();
+          if (!bu) return new Response("ok");
+          await setWizard(user.id, { kind: "adm_user_balance", targetUserId: uid, targetTgId: bu.telegram_id });
+          await tg("sendMessage", {
+            chat_id: chatId,
+            text:
+              `💵 <b>${bu.full_name || bu.telegram_id}</b>\n` +
+              `Joriy balans: <b>${fmt(bu.balance)} UZS</b>\n\n` +
+              `Qancha o'zgartirmoqchisiz? Misol:\n` +
+              `<code>+50000</code> — qo'shish\n<code>-20000</code> — ayirish`,
+            parse_mode: "HTML",
+            reply_markup: cancelKeyboard(),
+          });
+          return new Response("ok");
+        }
+        if (data.startsWith("adm:u_dm:")) {
+          const tgId = Number(data.slice(9));
+          await setWizard(user.id, { kind: "adm_dm_text", targetTgId: tgId });
+          await tg("sendMessage", {
+            chat_id: chatId,
+            text: `✉️ <code>${tgId}</code> ga yubormoqchi bo'lgan xabaringizni yozing:`,
+            parse_mode: "HTML",
+            reply_markup: cancelKeyboard(),
+          });
+          return new Response("ok");
+        }
+        if (data === "adm:bcast") {
+          await setWizard(user.id, { kind: "adm_broadcast" });
+          await tg("sendMessage", {
+            chat_id: chatId,
+            text: "📢 Barcha foydalanuvchilarga yuboriladigan xabar matnini yozing (HTML qo'llab-quvvatlanadi):",
+            reply_markup: cancelKeyboard(),
+          });
+          return new Response("ok");
+        }
+        if (data === "adm:dm") {
+          await setWizard(user.id, { kind: "adm_dm_pick" });
+          await tg("sendMessage", {
+            chat_id: chatId,
+            text: "✉️ Telegram ID yoki @username ni yuboring:",
+            reply_markup: cancelKeyboard(),
+          });
+          return new Response("ok");
+        }
+        if (data === "adm:user_search") {
+          await setWizard(user.id, { kind: "adm_user_search" });
+          await tg("sendMessage", {
+            chat_id: chatId,
+            text: "🔍 Telegram ID, @username yoki ism yuboring:",
+            reply_markup: cancelKeyboard(),
+          });
+          return new Response("ok");
+        }
         if (data.startsWith("adm:o_ok:")) { await adminApproveOrder(chatId, data.slice(9), true); return new Response("ok"); }
         if (data.startsWith("adm:o_no:")) { await adminApproveOrder(chatId, data.slice(9), false); return new Response("ok"); }
         if (data.startsWith("adm:t_ok:")) { await adminApproveTopup(chatId, data.slice(9), true); return new Response("ok"); }
@@ -862,7 +997,130 @@ Deno.serve(async (req) => {
       return new Response("ok");
     }
 
-    // ============ Commands & menu buttons ============
+    // ============ Admin wizard steps ============
+    if (step?.kind === "adm_broadcast") {
+      if (!(await isBotAdmin(user.telegram_id))) { await clearWizard(user.id); return new Response("ok"); }
+      const message = text.trim();
+      if (!message) {
+        await tg("sendMessage", { chat_id: chatId, text: "Xabar bo'sh." });
+        return new Response("ok");
+      }
+      await clearWizard(user.id);
+      await tg("sendMessage", { chat_id: chatId, text: "📤 Yuborilmoqda..." });
+      const { data: targets } = await supabase.from("bot_users").select("telegram_id").eq("banned", false);
+      let sent = 0, failed = 0;
+      for (const u of targets ?? []) {
+        const r = await tg("sendMessage", { chat_id: u.telegram_id, text: message, parse_mode: "HTML" });
+        if (r?.ok) sent++; else failed++;
+      }
+      await supabase.from("broadcasts").insert({ message, sent_count: sent, failed_count: failed, status: "done" });
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: `✅ Yuborildi: <b>${sent}</b>\n❌ Xato: <b>${failed}</b>`,
+        parse_mode: "HTML",
+        reply_markup: mainMenu(true),
+      });
+      return new Response("ok");
+    }
+
+    if (step?.kind === "adm_dm_pick") {
+      if (!(await isBotAdmin(user.telegram_id))) { await clearWizard(user.id); return new Response("ok"); }
+      const q = text.trim().replace(/^@/, "");
+      let target: any = null;
+      if (/^\d+$/.test(q)) {
+        const { data } = await supabase.from("bot_users").select("telegram_id,full_name").eq("telegram_id", Number(q)).maybeSingle();
+        target = data;
+      } else {
+        const { data } = await supabase.from("bot_users").select("telegram_id,full_name").ilike("username", q).maybeSingle();
+        target = data;
+      }
+      if (!target) {
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Foydalanuvchi topilmadi. Qayta urinib ko'ring:", reply_markup: cancelKeyboard() });
+        return new Response("ok");
+      }
+      await setWizard(user.id, { kind: "adm_dm_text", targetTgId: target.telegram_id });
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: `✉️ <b>${target.full_name || target.telegram_id}</b> ga yubormoqchi bo'lgan xabaringizni yozing:`,
+        parse_mode: "HTML",
+        reply_markup: cancelKeyboard(),
+      });
+      return new Response("ok");
+    }
+
+    if (step?.kind === "adm_dm_text") {
+      if (!(await isBotAdmin(user.telegram_id))) { await clearWizard(user.id); return new Response("ok"); }
+      const r = await tg("sendMessage", { chat_id: step.targetTgId, text: text, parse_mode: "HTML" });
+      await clearWizard(user.id);
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: r?.ok ? "✅ Xabar yuborildi." : `❌ Xato: ${r?.description || "yuborilmadi"}`,
+        reply_markup: mainMenu(true),
+      });
+      return new Response("ok");
+    }
+
+    if (step?.kind === "adm_user_search") {
+      if (!(await isBotAdmin(user.telegram_id))) { await clearWizard(user.id); return new Response("ok"); }
+      const q = text.trim().replace(/^@/, "");
+      let target: any = null;
+      if (/^\d+$/.test(q)) {
+        const { data } = await supabase.from("bot_users").select("id").eq("telegram_id", Number(q)).maybeSingle();
+        target = data;
+      } else {
+        const { data } = await supabase.from("bot_users").select("id").or(`username.ilike.%${q}%,full_name.ilike.%${q}%`).limit(1).maybeSingle();
+        target = data;
+      }
+      await clearWizard(user.id);
+      if (!target) {
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Topilmadi.", reply_markup: mainMenu(true) });
+        return new Response("ok");
+      }
+      await showAdminUserCard(chatId, target.id);
+      return new Response("ok");
+    }
+
+    if (step?.kind === "adm_user_balance") {
+      if (!(await isBotAdmin(user.telegram_id))) { await clearWizard(user.id); return new Response("ok"); }
+      const raw = text.trim().replace(/\s/g, "").replace(/,/g, "");
+      const delta = Number(raw);
+      if (!delta || isNaN(delta)) {
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Noto'g'ri summa. Misol: +50000 yoki -20000", reply_markup: cancelKeyboard() });
+        return new Response("ok");
+      }
+      const { data: bu } = await supabase.from("bot_users").select("balance").eq("id", step.targetUserId).single();
+      const newBal = Number(bu?.balance || 0) + delta;
+      if (newBal < 0) {
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans manfiy bo'la olmaydi.", reply_markup: cancelKeyboard() });
+        return new Response("ok");
+      }
+      await supabase.from("bot_users").update({ balance: newBal }).eq("id", step.targetUserId);
+      await supabase.from("balance_transactions").insert({
+        bot_user_id: step.targetUserId,
+        type: "adjustment",
+        status: "approved",
+        amount_uzs: delta,
+        admin_note: `Bot admin: ${user.telegram_id}`,
+      });
+      await clearWizard(user.id);
+      // Notify the user
+      await tg("sendMessage", {
+        chat_id: step.targetTgId,
+        text: delta > 0
+          ? `✅ Balansingizga <b>+${fmt(delta)} UZS</b> qo'shildi.\nYangi balans: <b>${fmt(newBal)} UZS</b>`
+          : `ℹ️ Balansingizdan <b>${fmt(delta)} UZS</b> ayrildi.\nYangi balans: <b>${fmt(newBal)} UZS</b>`,
+        parse_mode: "HTML",
+      }).catch(() => {});
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: `✅ Balans yangilandi: <b>${fmt(newBal)} UZS</b>`,
+        parse_mode: "HTML",
+        reply_markup: mainMenu(true),
+      });
+      await showAdminUserCard(chatId, step.targetUserId);
+      return new Response("ok");
+    }
+
     if (text.startsWith("/start")) {
       if (!user.phone) {
         await tg("sendMessage", {
