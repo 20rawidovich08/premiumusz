@@ -92,6 +92,8 @@ const uzDict = {
     sendBroadcast: "Xabarni yuborish",
     sending: "Yuborilmoqda...",
     sent: "Yuborildi",
+    adminTelegramIds: "Admin Telegram ID lari",
+    adminTelegramIdsHint: "Bot orqali xabar oladigan adminlarning Telegram ID raqamlari (vergul bilan ajrating). Bu IDli foydalanuvchilarda botda 🛠 Admin panel tugmasi paydo bo'ladi.",
   };
 
 const ruDict = {
