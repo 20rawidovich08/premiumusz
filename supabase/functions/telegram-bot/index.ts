@@ -213,11 +213,12 @@ function getWizard(user: any): Step | null {
 
 // ============ Helpers ============
 async function showHome(chatId: number, user: any) {
+  const adminFlag = await isBotAdmin(user.telegram_id);
   await tg("sendMessage", {
     chat_id: chatId,
     text: `👋 Xush kelibsiz, <b>${user.full_name || "do'stim"}</b>!\n\nBalans: <b>${fmt(user.balance)} UZS</b>\n\nQuyidagi menyudan tanlang 👇`,
     parse_mode: "HTML",
-    reply_markup: mainMenu(),
+    reply_markup: mainMenu(adminFlag),
   });
 }
 
