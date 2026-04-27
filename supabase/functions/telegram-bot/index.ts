@@ -128,9 +128,36 @@ function confirmInline(prefix: string, id: string) {
   };
 }
 
-// ============ Notify admin ============
+// ============ Notify admin (multi-recipient) ============
+function parseAdminIds(value: any): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((x) => String(x).trim()).filter(Boolean);
+  if (typeof value === "string") return value.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
+  if (typeof value === "number") return [String(value)];
+  return [];
+}
+
+async function getAdminRecipients(): Promise<string[]> {
+  const ids = new Set<string>();
+  if (ADMIN_CHAT_ID) ids.add(ADMIN_CHAT_ID);
+  const extra = await getSetting("admin_telegram_ids", null);
+  for (const id of parseAdminIds(extra)) ids.add(id);
+  return Array.from(ids);
+}
+
+async function broadcastToAdmins(text: string, photoFileId?: string) {
+  const recipients = await getAdminRecipients();
+  for (const chatId of recipients) {
+    if (photoFileId) {
+      const r = await tg("sendPhoto", { chat_id: chatId, photo: photoFileId, caption: text, parse_mode: "HTML" });
+      if (!r?.ok) await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+    } else {
+      await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+    }
+  }
+}
+
 async function notifyAdminNewOrder(order: any, user: any, photoFileId?: string) {
-  if (!ADMIN_CHAT_ID) return;
   const product = order.product_type === "stars"
     ? `⭐ ${order.stars_amount} Stars`
     : `👑 Premium ${order.duration_months} oy`;
@@ -143,26 +170,23 @@ async function notifyAdminNewOrder(order: any, user: any, photoFileId?: string) 
     `📦 ${product}\n` +
     `🎯 ${order.telegram_target || "-"}\n` +
     `💵 ${fmt(order.amount_uzs || 0)} UZS · ${order.payment_method}`;
-  if (photoFileId) {
-    await tg("sendPhoto", { chat_id: ADMIN_CHAT_ID, photo: photoFileId, caption: text, parse_mode: "HTML" });
-  } else {
-    await tg("sendMessage", { chat_id: ADMIN_CHAT_ID, text, parse_mode: "HTML" });
-  }
+  await broadcastToAdmins(text, photoFileId);
 }
 
 async function notifyAdminTopup(tx: any, user: any, photoFileId?: string) {
-  if (!ADMIN_CHAT_ID) return;
   const text =
     `💳 <b>Yangi balans to'ldirish</b>\n\n` +
     `👤 ${user.full_name || "-"} (@${user.username || "-"})\n` +
     `📞 ${user.phone || "-"}\n` +
     `🆔 <code>${user.telegram_id}</code>\n` +
     `💵 <b>${fmt(tx.amount_uzs)} UZS</b>`;
-  if (photoFileId) {
-    await tg("sendPhoto", { chat_id: ADMIN_CHAT_ID, photo: photoFileId, caption: text, parse_mode: "HTML" });
-  } else {
-    await tg("sendMessage", { chat_id: ADMIN_CHAT_ID, text, parse_mode: "HTML" });
-  }
+  await broadcastToAdmins(text, photoFileId);
+}
+
+// Check if a bot user is treated as admin (by telegram_id in settings).
+async function isBotAdmin(telegramId: number | string): Promise<boolean> {
+  const recipients = await getAdminRecipients();
+  return recipients.includes(String(telegramId));
 }
 
 // ============ Ephemeral state ============
