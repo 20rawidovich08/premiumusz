@@ -196,7 +196,12 @@ type Step =
   | { kind: "topup_amount" }
   | { kind: "topup_receipt"; amount: number }
   | { kind: "edit_phone" }
-  | { kind: "edit_username" };
+  | { kind: "edit_username" }
+  | { kind: "adm_broadcast" }
+  | { kind: "adm_dm_pick" }
+  | { kind: "adm_dm_text"; targetTgId: number }
+  | { kind: "adm_user_search" }
+  | { kind: "adm_user_balance"; targetUserId: string; targetTgId: number };
 
 async function setWizard(userId: string, step: Step) {
   await supabase.from("bot_users").update({ wizard_state: step as any }).eq("id", userId);
