@@ -930,6 +930,12 @@ Deno.serve(async (req) => {
       await showReferral(chatId, user);
     } else if (text === "ℹ️ Yordam" || text === "/help") {
       await showHelp(chatId);
+    } else if (text === "🛠 Admin panel" || text === "/admin") {
+      if (await isBotAdmin(user.telegram_id)) {
+        await showAdminPanel(chatId);
+      } else {
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Sizda admin huquqi yo'q." });
+      }
     } else {
       await tg("sendMessage", {
         chat_id: chatId,
