@@ -516,6 +516,22 @@ Deno.serve(async (req) => {
       const user = await getOrCreateUser(cb.from);
       await tg("answerCallbackQuery", { callback_query_id: cb.id });
 
+      // Admin actions (only for whitelisted telegram_ids)
+      if (data.startsWith("adm:")) {
+        if (!(await isBotAdmin(user.telegram_id))) {
+          await tg("sendMessage", { chat_id: chatId, text: "❌ Sizda admin huquqi yo'q." });
+          return new Response("ok");
+        }
+        if (data === "adm:orders") { await showAdminPendingOrders(chatId); return new Response("ok"); }
+        if (data === "adm:topups") { await showAdminPendingTopups(chatId); return new Response("ok"); }
+        if (data === "adm:stats") { await showAdminStats(chatId); return new Response("ok"); }
+        if (data.startsWith("adm:o_ok:")) { await adminApproveOrder(chatId, data.slice(9), true); return new Response("ok"); }
+        if (data.startsWith("adm:o_no:")) { await adminApproveOrder(chatId, data.slice(9), false); return new Response("ok"); }
+        if (data.startsWith("adm:t_ok:")) { await adminApproveTopup(chatId, data.slice(9), true); return new Response("ok"); }
+        if (data.startsWith("adm:t_no:")) { await adminApproveTopup(chatId, data.slice(9), false); return new Response("ok"); }
+        return new Response("ok");
+      }
+
       // Home/menu navigation
       if (data === "menu:home") {
         await clearWizard(user.id);
