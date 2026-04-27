@@ -7,12 +7,13 @@ const corsHeaders = {
 };
 
 const TG_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
-const ADMIN_CHAT_ID = Deno.env.get("TELEGRAM_ADMIN_CHAT_ID")!;
+const ADMIN_CHAT_ID = Deno.env.get("TELEGRAM_ADMIN_CHAT_ID") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const fmt = (n: number | string) => Number(n || 0).toLocaleString("ru-RU");
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 async function tg(method: string, body: unknown) {
   const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/${method}`, {
@@ -20,19 +21,49 @@ async function tg(method: string, body: unknown) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!data?.ok) console.error("Telegram admin notify failed", method, data);
   return data;
 }
 
+function parseIds(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((x) => String(x).trim()).filter(Boolean);
+  if (typeof value === "string") return value.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
+  if (typeof value === "number") return [String(value)];
+  return [];
+}
+
+async function getRecipients(admin: ReturnType<typeof createClient>): Promise<string[]> {
+  const ids = new Set<string>();
+  if (ADMIN_CHAT_ID) ids.add(ADMIN_CHAT_ID);
+  const { data } = await admin.from("settings").select("value").eq("key", "admin_telegram_ids").maybeSingle();
+  for (const id of parseIds(data?.value)) ids.add(id);
+  return Array.from(ids);
+}
+
+async function broadcast(recipients: string[], text: string, photoUrl: string | null) {
+  for (const chatId of recipients) {
+    if (photoUrl) {
+      const res = await tg("sendPhoto", { chat_id: chatId, photo: photoUrl, caption: text, parse_mode: "HTML" });
+      if (!res?.ok) await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+    } else {
+      await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (!TG_TOKEN || !ADMIN_CHAT_ID) return json({ error: "Telegram secrets missing" }, 500);
+  if (!TG_TOKEN) return json({ error: "Telegram token missing" }, 500);
 
   let body: any;
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+  const recipients = await getRecipients(admin);
+  if (recipients.length === 0) return json({ ok: true, skipped: "no_recipients" });
+
   const orderId = String(body?.order_id || "");
   const topupId = String(body?.topup_id || "");
 
@@ -40,7 +71,9 @@ Deno.serve(async (req) => {
     const { data: order } = await admin.from("orders").select("*").eq("id", orderId).maybeSingle();
     if (!order) return json({ ok: true, skipped: "no_order" });
 
-    const product = order.product_type === "stars" ? `⭐ ${order.stars_amount} Stars` : `👑 Premium ${order.duration_months} oy`;
+    const product = order.product_type === "stars"
+      ? `⭐ ${order.stars_amount} Stars`
+      : `👑 Premium ${order.duration_months} oy`;
     const text =
       `🆕 <b>Yangi buyurtma</b>\n\n` +
       `№ <code>${order.order_number}</code>\n` +
@@ -51,14 +84,13 @@ Deno.serve(async (req) => {
       `💵 ${fmt(order.amount_uzs)} UZS · ${order.payment_method}\n` +
       `🌐 ${order.source}`;
 
+    let photoUrl: string | null = null;
     if (order.receipt_url) {
       const { data: signed } = await admin.storage.from("receipts").createSignedUrl(order.receipt_url, 3600);
-      if (signed?.signedUrl) await tg("sendPhoto", { chat_id: ADMIN_CHAT_ID, photo: signed.signedUrl, caption: text, parse_mode: "HTML" });
-      else await tg("sendMessage", { chat_id: ADMIN_CHAT_ID, text, parse_mode: "HTML" });
-    } else {
-      await tg("sendMessage", { chat_id: ADMIN_CHAT_ID, text, parse_mode: "HTML" });
+      photoUrl = signed?.signedUrl ?? null;
     }
-    return json({ ok: true, kind: "order" });
+    await broadcast(recipients, text, photoUrl);
+    return json({ ok: true, kind: "order", recipients: recipients.length });
   }
 
   if (topupId) {
@@ -84,14 +116,13 @@ Deno.serve(async (req) => {
       `💵 <b>${fmt(tx.amount_uzs)} UZS</b>\n` +
       `🌐 ${tx.bot_user_id ? "bot" : "website"}`;
 
+    let photoUrl: string | null = null;
     if (tx.receipt_url) {
       const { data: signed } = await admin.storage.from("receipts").createSignedUrl(tx.receipt_url, 3600);
-      if (signed?.signedUrl) await tg("sendPhoto", { chat_id: ADMIN_CHAT_ID, photo: signed.signedUrl, caption: text, parse_mode: "HTML" });
-      else await tg("sendMessage", { chat_id: ADMIN_CHAT_ID, text, parse_mode: "HTML" });
-    } else {
-      await tg("sendMessage", { chat_id: ADMIN_CHAT_ID, text, parse_mode: "HTML" });
+      photoUrl = signed?.signedUrl ?? null;
     }
-    return json({ ok: true, kind: "topup" });
+    await broadcast(recipients, text, photoUrl);
+    return json({ ok: true, kind: "topup", recipients: recipients.length });
   }
 
   return json({ error: "order_id or topup_id required" }, 400);
