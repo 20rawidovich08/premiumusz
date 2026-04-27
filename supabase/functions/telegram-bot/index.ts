@@ -74,16 +74,15 @@ async function getOrCreateUser(from: any, startPayload?: string) {
 }
 
 // ============ Keyboards ============
-function mainMenu() {
-  return {
-    keyboard: [
-      [{ text: "👑 Premium" }, { text: "⭐ Stars" }],
-      [{ text: "💰 Balans" }, { text: "💳 Balansni to'ldirish" }],
-      [{ text: "👤 Profil" }, { text: "📋 Buyurtmalarim" }],
-      [{ text: "👥 Referal" }, { text: "ℹ️ Yordam" }],
-    ],
-    resize_keyboard: true,
-  };
+function mainMenu(isAdmin = false) {
+  const rows: any[] = [
+    [{ text: "👑 Premium" }, { text: "⭐ Stars" }],
+    [{ text: "💰 Balans" }, { text: "💳 Balansni to'ldirish" }],
+    [{ text: "👤 Profil" }, { text: "📋 Buyurtmalarim" }],
+    [{ text: "👥 Referal" }, { text: "ℹ️ Yordam" }],
+  ];
+  if (isAdmin) rows.push([{ text: "🛠 Admin panel" }]);
+  return { keyboard: rows, resize_keyboard: true };
 }
 
 function cancelKeyboard() {
