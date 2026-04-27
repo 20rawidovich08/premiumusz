@@ -325,6 +325,70 @@ async function showAdminPanel(chatId: number) {
         [{ text: `📦 Buyurtmalar (${pendingOrders ?? 0})`, callback_data: "adm:orders" }],
         [{ text: `💳 To'ldirishlar (${pendingTopups ?? 0})`, callback_data: "adm:topups" }],
         [{ text: "📊 Statistika", callback_data: "adm:stats" }],
+        [{ text: "👥 Foydalanuvchilar", callback_data: "adm:users" }],
+        [{ text: "🔍 Foydalanuvchi qidirish", callback_data: "adm:user_search" }],
+        [{ text: "📢 Barchaga xabar", callback_data: "adm:bcast" }],
+        [{ text: "✉️ Bitta foydalanuvchiga xabar", callback_data: "adm:dm" }],
+      ],
+    },
+  });
+}
+
+async function showAdminUsers(chatId: number, offset = 0) {
+  const PAGE = 10;
+  const { data: users, count } = await supabase
+    .from("bot_users")
+    .select("id,telegram_id,full_name,username,phone,balance,banned", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PAGE - 1);
+  if (!users?.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Foydalanuvchilar yo'q." });
+    return;
+  }
+  const lines = users.map((u: any, i: number) =>
+    `${offset + i + 1}. ${u.banned ? "🚫 " : ""}<b>${u.full_name || "-"}</b> ${u.username ? "@" + u.username : ""}\n` +
+    `   🆔 <code>${u.telegram_id}</code> · 💰 ${fmt(u.balance)} UZS · 📞 ${u.phone || "-"}`
+  );
+  const buttons: any[][] = users.map((u: any) => [
+    { text: `⚙️ ${u.full_name || u.telegram_id}`, callback_data: `adm:u:${u.id}` },
+  ]);
+  const nav: any[] = [];
+  if (offset > 0) nav.push({ text: "⬅️", callback_data: `adm:users_p:${Math.max(0, offset - PAGE)}` });
+  if ((count ?? 0) > offset + PAGE) nav.push({ text: "➡️", callback_data: `adm:users_p:${offset + PAGE}` });
+  if (nav.length) buttons.push(nav);
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: `👥 <b>Foydalanuvchilar</b> (jami: ${count ?? 0})\n\n` + lines.join("\n\n"),
+    parse_mode: "HTML",
+    reply_markup: { inline_keyboard: buttons },
+  });
+}
+
+async function showAdminUserCard(chatId: number, userId: string) {
+  const { data: u } = await supabase.from("bot_users").select("*").eq("id", userId).maybeSingle();
+  if (!u) {
+    await tg("sendMessage", { chat_id: chatId, text: "Foydalanuvchi topilmadi." });
+    return;
+  }
+  const { count: orders } = await supabase
+    .from("orders").select("*", { count: "exact", head: true }).eq("bot_user_id", userId);
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text:
+      `👤 <b>${u.full_name || "-"}</b> ${u.username ? "@" + u.username : ""}\n\n` +
+      `🆔 <code>${u.telegram_id}</code>\n` +
+      `📞 ${u.phone || "-"}\n` +
+      `💰 Balans: <b>${fmt(u.balance)} UZS</b>\n` +
+      `📦 Buyurtmalar: <b>${orders ?? 0}</b>\n` +
+      `🎫 Ref kod: <code>${u.referral_code}</code>\n` +
+      `Status: ${u.banned ? "🚫 Bloklangan" : "✅ Faol"}`,
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💵 Balansni o'zgartirish", callback_data: `adm:u_bal:${u.id}` }],
+        [{ text: "✉️ Xabar yuborish", callback_data: `adm:u_dm:${u.telegram_id}` }],
+        [{ text: u.banned ? "✅ Blokdan chiqarish" : "🚫 Bloklash", callback_data: `adm:u_ban:${u.id}` }],
+        [{ text: "⬅️ Foydalanuvchilar", callback_data: "adm:users" }],
       ],
     },
   });
