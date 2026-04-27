@@ -185,6 +185,8 @@ const ruDict = {
     sendBroadcast: "Отправить рассылку",
     sending: "Отправка...",
     sent: "Отправлено",
+    adminTelegramIds: "Telegram ID администраторов",
+    adminTelegramIdsHint: "Telegram ID администраторов, которым бот будет отправлять уведомления (через запятую). У этих пользователей в боте появится кнопка 🛠 Админ-панель.",
   };
 
 const adminDict: Record<AdminLang, Record<string, string>> = { uz: uzDict, ru: ruDict, en: ruDict };
