@@ -302,7 +302,200 @@ async function showHelp(chatId: number) {
   });
 }
 
-// ============ Main handler ============
+// ============ Admin panel (in-bot) ============
+async function showAdminPanel(chatId: number) {
+  const { count: pendingOrders } = await supabase
+    .from("orders").select("*", { count: "exact", head: true }).eq("status", "pending");
+  const { count: pendingTopups } = await supabase
+    .from("balance_transactions").select("*", { count: "exact", head: true }).eq("type", "topup").eq("status", "pending");
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text:
+      `🛠 <b>Admin panel</b>\n\n` +
+      `🕐 Pending buyurtmalar: <b>${pendingOrders ?? 0}</b>\n` +
+      `🕐 Pending to'ldirishlar: <b>${pendingTopups ?? 0}</b>`,
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `📦 Buyurtmalar (${pendingOrders ?? 0})`, callback_data: "adm:orders" }],
+        [{ text: `💳 To'ldirishlar (${pendingTopups ?? 0})`, callback_data: "adm:topups" }],
+        [{ text: "📊 Statistika", callback_data: "adm:stats" }],
+      ],
+    },
+  });
+}
+
+async function showAdminPendingOrders(chatId: number) {
+  const { data: rows } = await supabase
+    .from("orders").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(10);
+  if (!rows?.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "✅ Pending buyurtma yo'q." });
+    return;
+  }
+  for (const o of rows) {
+    const product = o.product_type === "stars" ? `⭐ ${o.stars_amount} Stars` : `👑 Premium ${o.duration_months} oy`;
+    const text =
+      `№ <code>${o.order_number}</code>\n` +
+      `👤 ${o.contact_full_name || "-"} · ${o.contact_phone || "-"}\n` +
+      `${product} → ${o.telegram_target || o.contact_telegram || "-"}\n` +
+      `💵 ${fmt(o.amount_uzs || 0)} UZS · ${o.payment_method} · ${o.source}`;
+    await tg("sendMessage", {
+      chat_id: chatId, text, parse_mode: "HTML",
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "✅ Tasdiqlash", callback_data: `adm:o_ok:${o.id}` },
+          { text: "❌ Rad etish", callback_data: `adm:o_no:${o.id}` },
+        ]],
+      },
+    });
+  }
+}
+
+async function showAdminPendingTopups(chatId: number) {
+  const { data: rows } = await supabase
+    .from("balance_transactions").select("*").eq("type", "topup").eq("status", "pending")
+    .order("created_at", { ascending: false }).limit(10);
+  if (!rows?.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "✅ Pending to'ldirish yo'q." });
+    return;
+  }
+  for (const t of rows) {
+    let person: any = null;
+    if (t.bot_user_id) {
+      const { data } = await supabase.from("bot_users").select("full_name,phone,username,telegram_id").eq("id", t.bot_user_id).maybeSingle();
+      person = data;
+    } else if (t.user_id) {
+      const { data } = await supabase.from("profiles").select("full_name,phone,telegram_username").eq("id", t.user_id).maybeSingle();
+      person = data;
+    }
+    const text =
+      `💳 <b>${fmt(t.amount_uzs)} UZS</b>\n` +
+      `👤 ${person?.full_name || "-"} · ${person?.phone || "-"}\n` +
+      `Telegram: ${person?.telegram_username || (person?.username ? "@" + person.username : "-")}\n` +
+      `🌐 ${t.bot_user_id ? "bot" : "website"}`;
+    let photoUrl: string | null = null;
+    if (t.receipt_url) {
+      const { data: signed } = await supabase.storage.from("receipts").createSignedUrl(t.receipt_url, 3600);
+      photoUrl = signed?.signedUrl ?? null;
+    }
+    const reply_markup = {
+      inline_keyboard: [[
+        { text: "✅ Tasdiqlash", callback_data: `adm:t_ok:${t.id}` },
+        { text: "❌ Rad etish", callback_data: `adm:t_no:${t.id}` },
+      ]],
+    };
+    if (photoUrl) {
+      const r = await tg("sendPhoto", { chat_id: chatId, photo: photoUrl, caption: text, parse_mode: "HTML", reply_markup });
+      if (!r?.ok) await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", reply_markup });
+    } else {
+      await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", reply_markup });
+    }
+  }
+}
+
+async function showAdminStats(chatId: number) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const { count: orders } = await supabase.from("orders").select("*", { count: "exact", head: true });
+  const { count: users } = await supabase.from("bot_users").select("*", { count: "exact", head: true });
+  const { data: revToday } = await supabase
+    .from("orders").select("amount_uzs").eq("status", "approved").gte("created_at", today.toISOString());
+  const sumToday = (revToday ?? []).reduce((a: number, r: any) => a + Number(r.amount_uzs || 0), 0);
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: `📊 <b>Statistika</b>\n\nFoydalanuvchilar: <b>${users ?? 0}</b>\nJami buyurtmalar: <b>${orders ?? 0}</b>\nBugungi tushum: <b>${fmt(sumToday)} UZS</b>`,
+    parse_mode: "HTML",
+  });
+}
+
+async function adminApproveOrder(chatId: number, orderId: string, approve: boolean) {
+  const { data: order } = await supabase.from("orders").select("*").eq("id", orderId).single();
+  if (!order || order.status !== "pending") {
+    await tg("sendMessage", { chat_id: chatId, text: "Buyurtma allaqachon ishlangan yoki topilmadi." });
+    return;
+  }
+  if (approve) {
+    await supabase.from("orders").update({ status: "approved", admin_note: "Tasdiqlandi (bot admin)" }).eq("id", orderId);
+  } else {
+    await supabase.from("orders").update({ status: "rejected", admin_note: "Rad etildi (bot admin)" }).eq("id", orderId);
+    if (order.payment_method === "balance") {
+      if (order.bot_user_id) {
+        const { data: bu } = await supabase.from("bot_users").select("balance").eq("id", order.bot_user_id).single();
+        await supabase.from("bot_users").update({ balance: Number(bu?.balance || 0) + Number(order.amount_uzs) }).eq("id", order.bot_user_id);
+        await supabase.from("balance_transactions").insert({
+          bot_user_id: order.bot_user_id, type: "refund", status: "approved",
+          amount_uzs: order.amount_uzs, order_id: order.id, admin_note: "Refund: rejected order",
+        });
+      } else if (order.user_id) {
+        const { data: pr } = await supabase.from("profiles").select("balance").eq("id", order.user_id).single();
+        await supabase.from("profiles").update({ balance: Number(pr?.balance || 0) + Number(order.amount_uzs) }).eq("id", order.user_id);
+        await supabase.from("balance_transactions").insert({
+          user_id: order.user_id, type: "refund", status: "approved",
+          amount_uzs: order.amount_uzs, order_id: order.id, admin_note: "Refund: rejected order",
+        });
+      }
+    }
+  }
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: approve ? `✅ Buyurtma <code>${order.order_number}</code> tasdiqlandi.` : `❌ Buyurtma <code>${order.order_number}</code> rad etildi.`,
+    parse_mode: "HTML",
+  });
+  // Notify the user
+  if (order.bot_user_id) {
+    const { data: bu } = await supabase.from("bot_users").select("telegram_id").eq("id", order.bot_user_id).single();
+    if (bu?.telegram_id) {
+      await tg("sendMessage", {
+        chat_id: bu.telegram_id,
+        text: approve
+          ? `✅ Buyurtmangiz <code>${order.order_number}</code> tasdiqlandi va tez orada yetkaziladi.`
+          : `❌ Buyurtmangiz <code>${order.order_number}</code> rad etildi. Mablag' qaytarildi.`,
+        parse_mode: "HTML",
+      }).catch(() => {});
+    }
+  }
+}
+
+async function adminApproveTopup(chatId: number, txId: string, approve: boolean) {
+  const { data: tx } = await supabase.from("balance_transactions").select("*").eq("id", txId).single();
+  if (!tx || tx.status !== "pending") {
+    await tg("sendMessage", { chat_id: chatId, text: "To'ldirish allaqachon ishlangan yoki topilmadi." });
+    return;
+  }
+  if (approve) {
+    if (tx.bot_user_id) {
+      const { data: bu } = await supabase.from("bot_users").select("balance,telegram_id").eq("id", tx.bot_user_id).single();
+      await supabase.from("bot_users").update({ balance: Number(bu?.balance || 0) + Number(tx.amount_uzs) }).eq("id", tx.bot_user_id);
+      if (bu?.telegram_id) {
+        await tg("sendMessage", {
+          chat_id: bu.telegram_id,
+          text: `✅ Balansingiz <b>${fmt(tx.amount_uzs)} UZS</b> ga to'ldirildi.`,
+          parse_mode: "HTML",
+        }).catch(() => {});
+      }
+    } else if (tx.user_id) {
+      const { data: pr } = await supabase.from("profiles").select("balance").eq("id", tx.user_id).single();
+      await supabase.from("profiles").update({ balance: Number(pr?.balance || 0) + Number(tx.amount_uzs) }).eq("id", tx.user_id);
+    }
+    await supabase.from("balance_transactions").update({ status: "approved", admin_note: "Tasdiqlandi (bot admin)" }).eq("id", txId);
+  } else {
+    await supabase.from("balance_transactions").update({ status: "rejected", admin_note: "Rad etildi (bot admin)" }).eq("id", txId);
+    if (tx.bot_user_id) {
+      const { data: bu } = await supabase.from("bot_users").select("telegram_id").eq("id", tx.bot_user_id).single();
+      if (bu?.telegram_id) {
+        await tg("sendMessage", {
+          chat_id: bu.telegram_id,
+          text: `❌ To'ldirish so'rovingiz rad etildi. Adminga yozing.`,
+        }).catch(() => {});
+      }
+    }
+  }
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: approve ? "✅ To'ldirish tasdiqlandi va balansga qo'shildi." : "❌ To'ldirish rad etildi.",
+  });
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
