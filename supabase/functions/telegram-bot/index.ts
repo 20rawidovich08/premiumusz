@@ -639,7 +639,7 @@ Deno.serve(async (req) => {
       }).eq("id", user.id);
       await clearWizard(user.id);
       const updated = { ...user, phone: msg.contact.phone_number };
-      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon raqami saqlandi!", reply_markup: mainMenu() });
+      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon raqami saqlandi!", reply_markup: mainMenu(await isBotAdmin(user.telegram_id)) });
       await showHome(chatId, updated);
       return new Response("ok");
     }
@@ -678,7 +678,7 @@ Deno.serve(async (req) => {
       const { data: plan } = await supabase.from("plans").select("*").eq("id", step.planId).single();
       if (!plan || Number(user.balance) < Number(plan.price_uzs)) {
         await clearWizard(user.id);
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu() });
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu(await isBotAdmin(user.telegram_id)) });
         return new Response("ok");
       }
       const newBal = Number(user.balance) - Number(plan.price_uzs);
@@ -707,7 +707,7 @@ Deno.serve(async (req) => {
           `Yangi balans: <b>${fmt(newBal)} UZS</b>\n\n` +
           `Admin tasdiqlagach Premium faollashtiriladi.`,
         parse_mode: "HTML",
-        reply_markup: mainMenu(),
+        reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
       });
       await notifyAdminNewOrder(order, { ...user, balance: newBal });
       return new Response("ok");
@@ -726,7 +726,7 @@ Deno.serve(async (req) => {
       const price = step.stars * rate;
       if (Number(user.balance) < price) {
         await clearWizard(user.id);
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu() });
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu(await isBotAdmin(user.telegram_id)) });
         return new Response("ok");
       }
       const newBal = Number(user.balance) - price;
@@ -755,7 +755,7 @@ Deno.serve(async (req) => {
           `Yangi balans: <b>${fmt(newBal)} UZS</b>\n\n` +
           `Admin tasdiqlagach yetkaziladi.`,
         parse_mode: "HTML",
-        reply_markup: mainMenu(),
+        reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
       });
       await notifyAdminNewOrder(order, { ...user, balance: newBal });
       return new Response("ok");
@@ -828,7 +828,7 @@ Deno.serve(async (req) => {
         chat_id: chatId,
         text: `✅ Chek qabul qilindi!\n\nSumma: <b>${fmt(step.amount)} UZS</b>\nAdmin tekshirgach balansingizga qo'shiladi.`,
         parse_mode: "HTML",
-        reply_markup: mainMenu(),
+        reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
       });
       await notifyAdminTopup(tx, user, fileId);
       return new Response("ok");
@@ -842,7 +842,7 @@ Deno.serve(async (req) => {
       }
       await supabase.from("bot_users").update({ phone }).eq("id", user.id);
       await clearWizard(user.id);
-      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon yangilandi!", reply_markup: mainMenu() });
+      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon yangilandi!", reply_markup: mainMenu(await isBotAdmin(user.telegram_id)) });
       return new Response("ok");
     }
 
@@ -918,7 +918,7 @@ Deno.serve(async (req) => {
       await tg("sendMessage", {
         chat_id: chatId,
         text: "Iltimos quyidagi menyudan tanlang yoki /start bosing.",
-        reply_markup: mainMenu(),
+        reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
       });
     }
 
