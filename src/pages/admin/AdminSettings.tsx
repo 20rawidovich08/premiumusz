@@ -80,6 +80,16 @@ const AdminSettings = () => {
             <Label>{t("referralReward")}</Label>
             <Input type="number" value={typeof s.referral_reward === "number" ? s.referral_reward : 0} onChange={(e) => setField("referral_reward", Number(e.target.value))} onBlur={(e) => save("referral_reward", Number(e.target.value))} />
           </div>
+          <div>
+            <Label>{t("adminTelegramIds")}</Label>
+            <Input
+              placeholder="123456789, 987654321"
+              value={typeof s.admin_telegram_ids === "string" ? s.admin_telegram_ids : Array.isArray(s.admin_telegram_ids) ? s.admin_telegram_ids.join(", ") : ""}
+              onChange={(e) => setField("admin_telegram_ids", e.target.value)}
+              onBlur={(e) => save("admin_telegram_ids", e.target.value)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t("adminTelegramIdsHint")}</p>
+          </div>
         </div>
       </div>
 
