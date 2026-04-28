@@ -48,10 +48,10 @@ export const SiteHeader = () => {
 
   return (
     <header className="sticky top-0 z-40 w-full">
-      <div className="container flex items-center justify-between gap-2 py-4">
-        <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary glow-ring">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
+      <div className="container flex items-center justify-between gap-2 py-2.5 sm:py-4">
+        <Link to="/" className="flex items-center gap-2 font-display text-base font-bold sm:text-lg">
+          <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary glow-ring sm:h-9 sm:w-9">
+            <Sparkles className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
           </span>
           <span className="text-gradient">Premium UZ</span>
         </Link>
@@ -79,10 +79,10 @@ export const SiteHeader = () => {
             <>
               <Link
                 to="/topup"
-                className="hidden items-center gap-1.5 rounded-full bg-secondary/60 px-3 py-1.5 text-sm font-medium hover:bg-secondary md:inline-flex"
+                className="inline-flex items-center gap-1 rounded-full bg-secondary/60 px-2.5 py-1 text-xs font-medium hover:bg-secondary sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-sm"
               >
-                <Wallet className="h-4 w-4 text-primary" />
-                {balance.toLocaleString("ru-RU")} <span className="text-xs text-muted-foreground">UZS</span>
+                <Wallet className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
+                {balance.toLocaleString("ru-RU")} <span className="text-[10px] text-muted-foreground sm:text-xs">UZS</span>
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

@@ -101,4 +101,44 @@
   .glow-ring {
     box-shadow: var(--shadow-glow);
   }
+  /* Horizontally scrollable wrapper for wide tables on mobile */
+  .table-scroll {
+    @apply -mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0;
+  }
+  .table-scroll table {
+    @apply min-w-[640px] text-xs sm:text-sm;
+  }
 }
+
+/* === Mobile density tuning ===
+   Make every page denser on small screens without touching each file:
+   shrink large display headings, vertical paddings, gaps, card paddings. */
+@media (max-width: 767px) {
+  html { font-size: 14px; }
+
+  /* Shrink very large display headings */
+  .font-display.text-5xl { font-size: 1.875rem; line-height: 2.125rem; }
+  .font-display.text-4xl { font-size: 1.625rem; line-height: 2rem; }
+  .font-display.text-3xl { font-size: 1.375rem; line-height: 1.75rem; }
+  .font-display.text-2xl { font-size: 1.25rem; line-height: 1.625rem; }
+
+  /* Reduce big section paddings/margins */
+  main.flex-1.container.py-20,
+  main.flex-1.container.py-16,
+  main.flex-1.container.py-14,
+  main.flex-1.container.py-12 { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+
+  /* Tighten glass cards a notch */
+  .glass.p-8 { padding: 1.25rem; }
+  .glass.p-7 { padding: 1.1rem; }
+  .glass.p-6 { padding: 1rem; }
+
+  /* Smaller default button/input height for denser forms */
+  .h-12 { height: 2.5rem; }
+  .h-11 { height: 2.375rem; }
+  .h-10 { height: 2.25rem; }
+
+  /* Tame oversized rounded corners on mobile */
+  .rounded-3xl { border-radius: 1rem; }
+}
+

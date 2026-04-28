@@ -93,8 +93,8 @@ const AdminOrders = () => {
         <Button onClick={load} variant="outline">{t("search")}</Button>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-2xl glass">
-        <table className="w-full text-sm">
+      <div className="mt-6 overflow-x-auto rounded-2xl glass">
+        <table className="w-full min-w-[640px] text-xs sm:text-sm">
           <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="p-3">{t("order")}</th>
