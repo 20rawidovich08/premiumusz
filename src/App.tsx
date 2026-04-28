@@ -11,7 +11,7 @@ import Auth from "./pages/Auth.tsx";
 import Profile from "./pages/Profile.tsx";
 import TopUp from "./pages/TopUp.tsx";
 import BuyPremium from "./pages/BuyPremium.tsx";
-import BuyStars from "./pages/BuyStars.tsx";
+
 import NotFound from "./pages/NotFound.tsx";
 import AdminLogin from "./pages/admin/AdminLogin.tsx";
 import { AdminLayout } from "./components/admin/AdminLayout.tsx";
@@ -45,7 +45,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/topup" element={<TopUp />} />
               <Route path="/buy/premium" element={<BuyPremium />} />
-              <Route path="/buy/stars" element={<BuyStars />} />
+              <Route path="/buy/stars" element={<Stars />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
