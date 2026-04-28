@@ -192,6 +192,7 @@ async function isBotAdmin(telegramId: number | string): Promise<boolean> {
 // Multi-step flows: which "wizard" the user is in.
 type Step =
   | { kind: "premium_target"; planId: string }
+  | { kind: "stars_amount" }
   | { kind: "stars_target"; stars: number }
   | { kind: "topup_amount" }
   | { kind: "topup_receipt"; amount: number }
