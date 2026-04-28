@@ -918,6 +918,7 @@ Deno.serve(async (req) => {
       return new Response("ok");
     }
 
+    if (step?.kind === "stars_target") {
       const tgname = text.trim();
       if (!USERNAME_RE.test(tgname)) {
         await tg("sendMessage", {
