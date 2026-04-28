@@ -79,10 +79,10 @@ export const SiteHeader = () => {
             <>
               <Link
                 to="/topup"
-                className="hidden items-center gap-1.5 rounded-full bg-secondary/60 px-3 py-1.5 text-sm font-medium hover:bg-secondary md:inline-flex"
+                className="inline-flex items-center gap-1 rounded-full bg-secondary/60 px-2.5 py-1 text-xs font-medium hover:bg-secondary sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-sm"
               >
-                <Wallet className="h-4 w-4 text-primary" />
-                {balance.toLocaleString("ru-RU")} <span className="text-xs text-muted-foreground">UZS</span>
+                <Wallet className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
+                {balance.toLocaleString("ru-RU")} <span className="text-[10px] text-muted-foreground sm:text-xs">UZS</span>
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
