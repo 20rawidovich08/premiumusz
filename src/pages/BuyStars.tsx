@@ -133,34 +133,17 @@ const BuyStars = () => {
               </div>
             </div>
 
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-              <Label className="text-sm font-semibold">✏️ {t("buy.amountStars")}</Label>
-              <div className="mt-2 flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={minStars}
-                  step={1}
-                  value={stars}
-                  onChange={(e) => setStars(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                  placeholder={`${minStars}+`}
-                  className="flex-1"
-                />
-                <span className="text-sm text-muted-foreground">⭐</span>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {[100, 250, 500, 1000, 2500].map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => setStars(q)}
-                    className="rounded-lg border border-border/60 px-2.5 py-1 text-xs hover:border-primary/50"
-                  >
-                    {q} ⭐
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {t("stars.min")}: {minStars} ⭐{stars >= minStars ? ` · ${stars} ⭐ = ${(stars * rate).toLocaleString("ru-RU")} UZS` : ""}
+            <div>
+              <Label>{t("buy.amountStars")}</Label>
+              <Input
+                type="number"
+                min={minStars}
+                value={stars}
+                onChange={(e) => setStars(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                className="mt-1.5"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("stars.min")}: {minStars} ⭐
               </p>
             </div>
 
