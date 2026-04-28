@@ -732,6 +732,25 @@ Deno.serve(async (req) => {
         return new Response("ok");
       }
 
+      // Custom stars amount
+      if (data === "stars:custom") {
+        const min = Number(await getSetting("min_stars", 50));
+        const rate = Number(await getSetting("stars_rate_uzs", 220));
+        await setWizard(user.id, { kind: "stars_amount" });
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text:
+            `⭐ <b>Stars miqdorini kiriting</b>\n\n` +
+            `Minimum: <b>${min}</b> ⭐\n` +
+            `Kurs: <b>1 ⭐ = ${fmt(rate)} UZS</b>\n` +
+            `Sizdagi balans: <b>${fmt(user.balance)} UZS</b>\n\n` +
+            `Faqat son yuboring (masalan: 120):`,
+          parse_mode: "HTML",
+          reply_markup: cancelKeyboard(),
+        });
+        return new Response("ok");
+      }
+
       // Stars package selected → ask for target
       if (data.startsWith("stars:")) {
         const stars = Number(data.split(":")[1]);
