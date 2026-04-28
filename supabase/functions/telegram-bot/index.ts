@@ -884,7 +884,40 @@ Deno.serve(async (req) => {
       return new Response("ok");
     }
 
-    if (step?.kind === "stars_target") {
+    if (step?.kind === "stars_amount") {
+      const stars = Math.floor(Number(text.replace(/\s/g, "").replace(/,/g, ".")));
+      const min = Number(await getSetting("min_stars", 50));
+      const rate = Number(await getSetting("stars_rate_uzs", 220));
+      if (!Number.isFinite(stars) || stars < min) {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: `❌ Noto'g'ri miqdor. Minimum <b>${min}</b> ⭐. Qayta yuboring:`,
+          parse_mode: "HTML",
+        });
+        return new Response("ok");
+      }
+      const price = stars * rate;
+      if (Number(user.balance) < price) {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: `❌ Balans yetarli emas.\n\nKerak: <b>${fmt(price)} UZS</b>\nSizda: <b>${fmt(user.balance)} UZS</b>`,
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: [[{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }]] },
+        });
+        return new Response("ok");
+      }
+      await setWizard(user.id, { kind: "stars_target", stars });
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text:
+          `⭐ <b>${stars} Stars</b> — ${fmt(price)} UZS\n\n` +
+          `Stars qaysi akkauntga kerak? Telegram username yuboring (@username).`,
+        parse_mode: "HTML",
+        reply_markup: cancelKeyboard(),
+      });
+      return new Response("ok");
+    }
+
       const tgname = text.trim();
       if (!USERNAME_RE.test(tgname)) {
         await tg("sendMessage", {
