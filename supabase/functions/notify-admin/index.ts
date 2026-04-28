@@ -15,14 +15,26 @@ const fmt = (n: number | string) => Number(n || 0).toLocaleString("ru-RU");
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-async function tg(method: string, body: unknown) {
+async function tgJson(method: string, body: unknown) {
   const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!data?.ok) console.error("Telegram admin notify failed", method, data);
+  if (!data?.ok) console.error("Telegram notify failed", method, data);
+  return data;
+}
+
+async function tgSendPhotoBytes(chatId: string, bytes: Uint8Array, filename: string, caption: string) {
+  const fd = new FormData();
+  fd.append("chat_id", chatId);
+  fd.append("caption", caption);
+  fd.append("parse_mode", "HTML");
+  fd.append("photo", new Blob([bytes]), filename);
+  const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, { method: "POST", body: fd });
+  const data = await res.json().catch(() => ({}));
+  if (!data?.ok) console.error("sendPhoto bytes failed", data);
   return data;
 }
 
@@ -42,13 +54,31 @@ async function getRecipients(admin: ReturnType<typeof createClient>): Promise<st
   return Array.from(ids);
 }
 
-async function broadcast(recipients: string[], text: string, photoUrl: string | null) {
+async function downloadReceiptBytes(admin: ReturnType<typeof createClient>, path: string): Promise<{ bytes: Uint8Array; filename: string } | null> {
+  try {
+    const { data, error } = await admin.storage.from("receipts").download(path);
+    if (error || !data) {
+      console.error("Receipt download failed", error);
+      return null;
+    }
+    const buf = new Uint8Array(await data.arrayBuffer());
+    const filename = path.split("/").pop() || "receipt.jpg";
+    return { bytes: buf, filename };
+  } catch (e) {
+    console.error("Receipt download exception", e);
+    return null;
+  }
+}
+
+async function broadcast(recipients: string[], text: string, receipt: { bytes: Uint8Array; filename: string } | null) {
   for (const chatId of recipients) {
-    if (photoUrl) {
-      const res = await tg("sendPhoto", { chat_id: chatId, photo: photoUrl, caption: text, parse_mode: "HTML" });
-      if (!res?.ok) await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
-    } else {
-      await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+    let sent = false;
+    if (receipt) {
+      const r = await tgSendPhotoBytes(chatId, receipt.bytes, receipt.filename, text);
+      sent = !!r?.ok;
+    }
+    if (!sent) {
+      await tgJson("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
     }
   }
 }
@@ -84,13 +114,9 @@ Deno.serve(async (req) => {
       `💵 ${fmt(order.amount_uzs)} UZS · ${order.payment_method}\n` +
       `🌐 ${order.source}`;
 
-    let photoUrl: string | null = null;
-    if (order.receipt_url) {
-      const { data: signed } = await admin.storage.from("receipts").createSignedUrl(order.receipt_url, 3600);
-      photoUrl = signed?.signedUrl ?? null;
-    }
-    await broadcast(recipients, text, photoUrl);
-    return json({ ok: true, kind: "order", recipients: recipients.length });
+    const receipt = order.receipt_url ? await downloadReceiptBytes(admin, order.receipt_url) : null;
+    await broadcast(recipients, text, receipt);
+    return json({ ok: true, kind: "order", recipients: recipients.length, hadReceipt: !!receipt });
   }
 
   if (topupId) {
@@ -116,13 +142,9 @@ Deno.serve(async (req) => {
       `💵 <b>${fmt(tx.amount_uzs)} UZS</b>\n` +
       `🌐 ${tx.bot_user_id ? "bot" : "website"}`;
 
-    let photoUrl: string | null = null;
-    if (tx.receipt_url) {
-      const { data: signed } = await admin.storage.from("receipts").createSignedUrl(tx.receipt_url, 3600);
-      photoUrl = signed?.signedUrl ?? null;
-    }
-    await broadcast(recipients, text, photoUrl);
-    return json({ ok: true, kind: "topup", recipients: recipients.length });
+    const receipt = tx.receipt_url ? await downloadReceiptBytes(admin, tx.receipt_url) : null;
+    await broadcast(recipients, text, receipt);
+    return json({ ok: true, kind: "topup", recipients: recipients.length, hadReceipt: !!receipt });
   }
 
   return json({ error: "order_id or topup_id required" }, 400);
