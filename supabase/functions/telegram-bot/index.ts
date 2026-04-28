@@ -110,12 +110,12 @@ async function premiumPlansInline() {
 async function starsPackagesInline() {
   const { data: pkgs } = await supabase.from("stars_packages").select("*").eq("active", true).order("stars");
   const rate = Number(await getSetting("stars_rate_uzs", 220));
-  return {
-    inline_keyboard: (pkgs ?? []).map((p: any) => [{
-      text: `⭐ ${p.stars} — ${fmt(p.stars * rate)} UZS`,
-      callback_data: `stars:${p.stars}`,
-    }]),
-  };
+  const rows = (pkgs ?? []).map((p: any) => [{
+    text: `⭐ ${p.stars} — ${fmt(p.stars * rate)} UZS`,
+    callback_data: `stars:${p.stars}`,
+  }]);
+  rows.push([{ text: "✏️ Boshqa miqdor", callback_data: "stars:custom" }]);
+  return { inline_keyboard: rows };
 }
 
 function confirmInline(prefix: string, id: string) {
