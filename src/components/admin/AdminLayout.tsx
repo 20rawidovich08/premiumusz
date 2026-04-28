@@ -49,6 +49,7 @@ export const AdminLayout = () => {
 
   return (
     <div className="flex min-h-screen">
+      {/* Desktop sidebar */}
       <aside className="hidden w-64 flex-col border-r border-border/50 bg-card/40 backdrop-blur md:flex">
         <Link to="/" className="flex items-center gap-2 px-6 py-5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary">
@@ -96,9 +97,62 @@ export const AdminLayout = () => {
           </Button>
         </div>
       </aside>
-      <main className="flex-1 p-6 md:p-10">
-        <Outlet />
-      </main>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top bar */}
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/50 bg-card/70 px-3 py-2 backdrop-blur md:hidden">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-primary">
+              <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
+            </span>
+            <span className="font-display text-sm font-bold">Admin</span>
+          </Link>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => requestAdminNotificationPermission(t("notificationsEnabled"))}
+              aria-label="notifications"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={async () => { await supabase.auth.signOut(); navigate("/admin/login"); }}
+              aria-label="sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </header>
+
+        <main className="flex-1 p-3 pb-20 sm:p-5 md:p-8 lg:p-10">
+          <Outlet />
+        </main>
+
+        {/* Mobile bottom nav */}
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch overflow-x-auto border-t border-border/50 bg-card/90 backdrop-blur md:hidden">
+          {items.map((it) => (
+            <NavLink
+              key={it.to}
+              to={it.to}
+              end={"end" in it ? it.end : undefined}
+              className={({ isActive }) =>
+                `flex min-w-[64px] flex-1 flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] font-medium transition-colors ${
+                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`
+              }
+            >
+              <it.icon className="h-4 w-4" />
+              <span className="leading-none">{t(it.labelKey)}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </div>
     </div>
   );
 };
+
