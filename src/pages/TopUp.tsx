@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Copy, Upload, CheckCircle2, Wallet } from "lucide-react";
+import { Upload, CheckCircle2, Wallet } from "lucide-react";
+import { CardPicker } from "@/components/CardPicker";
 
 const TopUp = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { t } = useI18n();
-  const [card, setCard] = useState({ number: "", holder: "", bank: "" });
   const [minAmount, setMinAmount] = useState(10000);
   const [amount, setAmount] = useState<number>(50000);
   const [receipt, setReceipt] = useState<File | null>(null);
@@ -30,19 +30,12 @@ const TopUp = () => {
     supabase
       .from("settings")
       .select("key,value")
-      .in("key", ["card_number", "card_holder", "card_bank", "min_topup_uzs"])
+      .eq("key", "min_topup_uzs")
       .then(({ data }) => {
         const map = Object.fromEntries((data ?? []).map((r: any) => [r.key, r.value]));
-        setCard({
-          number: typeof map.card_number === "string" ? map.card_number : "",
-          holder: typeof map.card_holder === "string" ? map.card_holder : "",
-          bank: typeof map.card_bank === "string" ? map.card_bank : "",
-        });
         if (map.min_topup_uzs) setMinAmount(Number(map.min_topup_uzs));
       });
   }, []);
-
-  const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success(t("common.copied")); };
 
   const submit = async () => {
     if (!user) return;
