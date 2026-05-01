@@ -1,4 +1,4 @@
-// Admin broadcast: sends a message to every registered bot_user.
+// Admin broadcast: sends a message (optionally with photo) to every registered bot_user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -32,8 +32,9 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch {}
   const message = (body.message || "").toString().trim();
-  if (!message) {
-    return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: corsHeaders });
+  const photoUrl = (body.photo_url || "").toString().trim();
+  if (!message && !photoUrl) {
+    return new Response(JSON.stringify({ error: "message or photo required" }), { status: 400, headers: corsHeaders });
   }
 
   const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -42,11 +43,25 @@ Deno.serve(async (req) => {
   let sent = 0, failed = 0;
   for (const u of users ?? []) {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: u.telegram_id, text: message, parse_mode: "HTML" }),
-      });
+      let res: Response;
+      if (photoUrl) {
+        res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: u.telegram_id,
+            photo: photoUrl,
+            caption: message || undefined,
+            parse_mode: "HTML",
+          }),
+        });
+      } else {
+        res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: u.telegram_id, text: message, parse_mode: "HTML" }),
+        });
+      }
       const data = await res.json();
       if (data.ok) sent++; else failed++;
     } catch {
@@ -56,7 +71,7 @@ Deno.serve(async (req) => {
     await new Promise((r) => setTimeout(r, 40));
   }
 
-  await admin.from("broadcasts").insert({ message, sent_count: sent, failed_count: failed, status: "done" });
+  await admin.from("broadcasts").insert({ message: message || "[photo]", sent_count: sent, failed_count: failed, status: "done" });
 
   return new Response(JSON.stringify({ sent, failed, total: users?.length ?? 0 }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
