@@ -155,31 +155,14 @@ const TopUp = () => {
 
             <div className="rounded-3xl glass p-6 space-y-4">
               <h3 className="font-display text-xl font-bold">Karta ma'lumotlari</h3>
-              <div className="rounded-xl bg-secondary/60 p-4">
-                <div className="text-xs uppercase text-muted-foreground">{t("topup.cardNumber")}</div>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="font-mono text-lg tracking-wider">{card.number || "—"}</span>
-                  <button onClick={() => copy(card.number)} className="rounded-lg p-2 hover:bg-background/50">
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="text-xs uppercase text-muted-foreground">{t("topup.cardHolder")}</div>
-                    <div className="mt-0.5 font-medium">{card.holder || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase text-muted-foreground">Bank</div>
-                    <div className="mt-0.5 font-medium">{card.bank || "—"}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-xl bg-primary/10 border border-primary/20 p-4 text-sm">
-                <div className="font-semibold mb-1">{amount.toLocaleString("ru-RU")} UZS</div>
-                <p className="text-xs text-muted-foreground">
-                  Yuqoridagi kartaga ushbu summani o'tkazing va chek rasmini yuklang.
-                </p>
-              </div>
+              <CardPicker
+                amountUzs={amount}
+                copyLabel={t("common.copied")}
+                cardNumberLabel={t("topup.cardNumber")}
+                cardHolderLabel={t("topup.cardHolder")}
+                bankLabel="Bank"
+                amountLabel="Tanlangan kartaga ushbu summani o'tkazing va chek rasmini yuklang."
+              />
             </div>
           </div>
         </div>
