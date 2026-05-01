@@ -5,12 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { CheckCircle2, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, RefreshCw, XCircle, Plus, Trash2 } from "lucide-react";
 import { useAdminT } from "@/lib/adminI18n";
+
+type CardItem = { number: string; holder: string; bank: string };
 
 const AdminSettings = () => {
   const t = useAdminT();
   const [s, setS] = useState<Record<string, any>>({});
+  const [cards, setCards] = useState<CardItem[]>([]);
   const [webhook, setWebhook] = useState<any>(null);
   const [webhookBusy, setWebhookBusy] = useState(false);
 
@@ -19,6 +22,21 @@ const AdminSettings = () => {
     const map: Record<string, any> = {};
     (data ?? []).forEach((r: any) => { map[r.key] = r.value; });
     setS(map);
+    // Initialize cards from `cards` jsonb or fall back to legacy single card
+    let initial: CardItem[] = [];
+    if (Array.isArray(map.cards)) {
+      initial = (map.cards as any[])
+        .map((c) => ({ number: String(c?.number ?? ""), holder: String(c?.holder ?? ""), bank: String(c?.bank ?? "") }))
+        .filter((c) => c.number || c.holder || c.bank);
+    }
+    if (initial.length === 0 && (map.card_number || map.card_holder || map.card_bank)) {
+      initial = [{
+        number: typeof map.card_number === "string" ? map.card_number : "",
+        holder: typeof map.card_holder === "string" ? map.card_holder : "",
+        bank: typeof map.card_bank === "string" ? map.card_bank : "",
+      }];
+    }
+    setCards(initial);
   };
   useEffect(() => { load(); }, []);
 
@@ -40,6 +58,36 @@ const AdminSettings = () => {
   };
 
   const setField = (k: string, v: any) => setS((p) => ({ ...p, [k]: v }));
+
+  const saveCards = async (next: CardItem[]) => {
+    const cleaned = next.map((c) => ({
+      number: (c.number || "").trim(),
+      holder: (c.holder || "").trim(),
+      bank: (c.bank || "").trim(),
+    }));
+    setCards(cleaned);
+    const { error } = await supabase.from("settings").upsert({ key: "cards", value: cleaned });
+    if (error) return toast.error(error.message);
+    // Mirror the first card to legacy fields for backward compatibility
+    const first = cleaned[0] ?? { number: "", holder: "", bank: "" };
+    await Promise.all([
+      supabase.from("settings").upsert({ key: "card_number", value: first.number }),
+      supabase.from("settings").upsert({ key: "card_holder", value: first.holder }),
+      supabase.from("settings").upsert({ key: "card_bank", value: first.bank }),
+    ]);
+    toast.success(t("saved"));
+  };
+
+  const updateCard = (idx: number, patch: Partial<CardItem>) => {
+    setCards((prev) => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
+  };
+
+  const addCard = () => setCards((prev) => [...prev, { number: "", holder: "", bank: "" }]);
+  const removeCard = (idx: number) => {
+    const next = cards.filter((_, i) => i !== idx);
+    saveCards(next);
+  };
+
   const lastError = webhook?.last_error_message || webhook?.status?.result?.last_error_message || webhook?.telegram?.result?.last_error_message;
 
   return (
@@ -47,19 +95,57 @@ const AdminSettings = () => {
       <h1 className="font-display text-3xl font-bold">{t("settings")}</h1>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl glass p-5 space-y-4">
-          <h3 className="font-semibold">{t("cardDetails")}</h3>
-          <div>
-            <Label>{t("cardNumber")}</Label>
-            <Input value={typeof s.card_number === "string" ? s.card_number : ""} onChange={(e) => setField("card_number", e.target.value)} onBlur={(e) => save("card_number", e.target.value)} />
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">{t("cardDetails")}</h3>
+            <Button size="sm" variant="outline" onClick={addCard}>
+              <Plus className="mr-1 h-4 w-4" /> {t("add")}
+            </Button>
           </div>
-          <div>
-            <Label>{t("holderName")}</Label>
-            <Input value={typeof s.card_holder === "string" ? s.card_holder : ""} onChange={(e) => setField("card_holder", e.target.value)} onBlur={(e) => save("card_holder", e.target.value)} />
+          {cards.length === 0 && (
+            <p className="text-sm text-muted-foreground">—</p>
+          )}
+          <div className="space-y-3">
+            {cards.map((c, idx) => (
+              <div key={idx} className="rounded-xl border border-border/60 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase text-muted-foreground">#{idx + 1}</span>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeCard(idx)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+                <div>
+                  <Label className="text-xs">{t("cardNumber")}</Label>
+                  <Input
+                    value={c.number}
+                    onChange={(e) => updateCard(idx, { number: e.target.value })}
+                    onBlur={() => saveCards(cards)}
+                    placeholder="8600 1234 5678 9012"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">{t("holderName")}</Label>
+                    <Input
+                      value={c.holder}
+                      onChange={(e) => updateCard(idx, { holder: e.target.value })}
+                      onBlur={() => saveCards(cards)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">{t("bank")}</Label>
+                    <Input
+                      value={c.bank}
+                      onChange={(e) => updateCard(idx, { bank: e.target.value })}
+                      onBlur={() => saveCards(cards)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div>
-            <Label>{t("bank")}</Label>
-            <Input value={typeof s.card_bank === "string" ? s.card_bank : ""} onChange={(e) => setField("card_bank", e.target.value)} onBlur={(e) => save("card_bank", e.target.value)} />
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Bir nechta karta qo'shing — foydalanuvchi to'lov vaqtida istalgan birini tanlay oladi.
+          </p>
         </div>
 
         <div className="rounded-2xl glass p-5 space-y-4">
