@@ -221,25 +221,12 @@ const Order = () => {
                       </div>
                     </div>
                   )}
-                  <div className="rounded-xl bg-secondary/60 p-4">
-                    <div className="text-xs uppercase text-muted-foreground">{t("order.cardNumber")}</div>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className="font-mono text-lg tracking-wider">{card.number || "—"}</span>
-                      <button onClick={() => copy(card.number)} className="rounded-lg p-2 hover:bg-background/50">
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <div className="text-xs uppercase text-muted-foreground">{t("order.cardHolder")}</div>
-                        <div className="mt-0.5 font-medium">{card.holder || "—"}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs uppercase text-muted-foreground">Bank</div>
-                        <div className="mt-0.5 font-medium">{card.bank || "—"}</div>
-                      </div>
-                    </div>
-                  </div>
+                  <CardPicker
+                    copyLabel={t("order.copied")}
+                    cardNumberLabel={t("order.cardNumber")}
+                    cardHolderLabel={t("order.cardHolder")}
+                    bankLabel="Bank"
+                  />
 
                   <div>
                     <Label>{t("order.uploadReceipt")} *</Label>
