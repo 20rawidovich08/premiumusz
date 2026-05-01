@@ -26,12 +26,13 @@ async function tgJson(method: string, body: unknown) {
   return data;
 }
 
-async function tgSendPhotoBytes(chatId: string, bytes: Uint8Array, filename: string, caption: string) {
+async function tgSendPhotoBytes(chatId: string, bytes: Uint8Array, filename: string, caption: string, replyMarkup?: unknown) {
   const fd = new FormData();
   fd.append("chat_id", chatId);
   fd.append("caption", caption);
   fd.append("parse_mode", "HTML");
   fd.append("photo", new Blob([bytes]), filename);
+  if (replyMarkup) fd.append("reply_markup", JSON.stringify(replyMarkup));
   const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, { method: "POST", body: fd });
   const data = await res.json().catch(() => ({}));
   if (!data?.ok) console.error("sendPhoto bytes failed", data);
@@ -70,15 +71,15 @@ async function downloadReceiptBytes(admin: ReturnType<typeof createClient>, path
   }
 }
 
-async function broadcast(recipients: string[], text: string, receipt: { bytes: Uint8Array; filename: string } | null) {
+async function broadcast(recipients: string[], text: string, receipt: { bytes: Uint8Array; filename: string } | null, replyMarkup?: unknown) {
   for (const chatId of recipients) {
     let sent = false;
     if (receipt) {
-      const r = await tgSendPhotoBytes(chatId, receipt.bytes, receipt.filename, text);
+      const r = await tgSendPhotoBytes(chatId, receipt.bytes, receipt.filename, text, replyMarkup);
       sent = !!r?.ok;
     }
     if (!sent) {
-      await tgJson("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+      await tgJson("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", reply_markup: replyMarkup });
     }
   }
 }
@@ -115,7 +116,13 @@ Deno.serve(async (req) => {
       `🌐 ${order.source}`;
 
     const receipt = order.receipt_url ? await downloadReceiptBytes(admin, order.receipt_url) : null;
-    await broadcast(recipients, text, receipt);
+    const orderKb = order.status === "pending" ? {
+      inline_keyboard: [[
+        { text: "✅ Tasdiqlash", callback_data: `adm:o_ok:${order.id}` },
+        { text: "❌ Rad etish", callback_data: `adm:o_no:${order.id}` },
+      ]],
+    } : undefined;
+    await broadcast(recipients, text, receipt, orderKb);
     return json({ ok: true, kind: "order", recipients: recipients.length, hadReceipt: !!receipt });
   }
 
@@ -143,7 +150,13 @@ Deno.serve(async (req) => {
       `🌐 ${tx.bot_user_id ? "bot" : "website"}`;
 
     const receipt = tx.receipt_url ? await downloadReceiptBytes(admin, tx.receipt_url) : null;
-    await broadcast(recipients, text, receipt);
+    const topupKb = tx.status === "pending" ? {
+      inline_keyboard: [[
+        { text: "✅ Tasdiqlash", callback_data: `adm:t_ok:${tx.id}` },
+        { text: "❌ Rad etish", callback_data: `adm:t_no:${tx.id}` },
+      ]],
+    } : undefined;
+    await broadcast(recipients, text, receipt, topupKb);
     return json({ ok: true, kind: "topup", recipients: recipients.length, hadReceipt: !!receipt });
   }
 

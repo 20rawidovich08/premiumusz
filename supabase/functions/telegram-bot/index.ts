@@ -144,14 +144,14 @@ async function getAdminRecipients(): Promise<string[]> {
   return Array.from(ids);
 }
 
-async function broadcastToAdmins(text: string, photoFileId?: string) {
+async function broadcastToAdmins(text: string, photoFileId?: string, replyMarkup?: unknown) {
   const recipients = await getAdminRecipients();
   for (const chatId of recipients) {
     if (photoFileId) {
-      const r = await tg("sendPhoto", { chat_id: chatId, photo: photoFileId, caption: text, parse_mode: "HTML" });
-      if (!r?.ok) await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+      const r = await tg("sendPhoto", { chat_id: chatId, photo: photoFileId, caption: text, parse_mode: "HTML", reply_markup: replyMarkup });
+      if (!r?.ok) await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", reply_markup: replyMarkup });
     } else {
-      await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+      await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", reply_markup: replyMarkup });
     }
   }
 }
@@ -169,7 +169,13 @@ async function notifyAdminNewOrder(order: any, user: any, photoFileId?: string) 
     `📦 ${product}\n` +
     `🎯 ${order.telegram_target || "-"}\n` +
     `💵 ${fmt(order.amount_uzs || 0)} UZS · ${order.payment_method}`;
-  await broadcastToAdmins(text, photoFileId);
+  const kb = {
+    inline_keyboard: [[
+      { text: "✅ Tasdiqlash", callback_data: `adm:o_ok:${order.id}` },
+      { text: "❌ Rad etish", callback_data: `adm:o_no:${order.id}` },
+    ]],
+  };
+  await broadcastToAdmins(text, photoFileId, kb);
 }
 
 async function notifyAdminTopup(tx: any, user: any, photoFileId?: string) {
@@ -179,7 +185,13 @@ async function notifyAdminTopup(tx: any, user: any, photoFileId?: string) {
     `📞 ${user.phone || "-"}\n` +
     `🆔 <code>${user.telegram_id}</code>\n` +
     `💵 <b>${fmt(tx.amount_uzs)} UZS</b>`;
-  await broadcastToAdmins(text, photoFileId);
+  const kb = {
+    inline_keyboard: [[
+      { text: "✅ Tasdiqlash", callback_data: `adm:t_ok:${tx.id}` },
+      { text: "❌ Rad etish", callback_data: `adm:t_no:${tx.id}` },
+    ]],
+  };
+  await broadcastToAdmins(text, photoFileId, kb);
 }
 
 // Check if a bot user is treated as admin (by telegram_id in settings).
