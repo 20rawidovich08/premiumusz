@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Copy, Upload, CheckCircle2, Wallet } from "lucide-react";
+import { Upload, CheckCircle2, Wallet } from "lucide-react";
+import { CardPicker } from "@/components/CardPicker";
 
 const TopUp = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { t } = useI18n();
-  const [card, setCard] = useState({ number: "", holder: "", bank: "" });
   const [minAmount, setMinAmount] = useState(10000);
   const [amount, setAmount] = useState<number>(50000);
   const [receipt, setReceipt] = useState<File | null>(null);
@@ -30,19 +30,12 @@ const TopUp = () => {
     supabase
       .from("settings")
       .select("key,value")
-      .in("key", ["card_number", "card_holder", "card_bank", "min_topup_uzs"])
+      .eq("key", "min_topup_uzs")
       .then(({ data }) => {
         const map = Object.fromEntries((data ?? []).map((r: any) => [r.key, r.value]));
-        setCard({
-          number: typeof map.card_number === "string" ? map.card_number : "",
-          holder: typeof map.card_holder === "string" ? map.card_holder : "",
-          bank: typeof map.card_bank === "string" ? map.card_bank : "",
-        });
         if (map.min_topup_uzs) setMinAmount(Number(map.min_topup_uzs));
       });
   }, []);
-
-  const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success(t("common.copied")); };
 
   const submit = async () => {
     if (!user) return;
@@ -162,31 +155,14 @@ const TopUp = () => {
 
             <div className="rounded-3xl glass p-6 space-y-4">
               <h3 className="font-display text-xl font-bold">Karta ma'lumotlari</h3>
-              <div className="rounded-xl bg-secondary/60 p-4">
-                <div className="text-xs uppercase text-muted-foreground">{t("topup.cardNumber")}</div>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="font-mono text-lg tracking-wider">{card.number || "—"}</span>
-                  <button onClick={() => copy(card.number)} className="rounded-lg p-2 hover:bg-background/50">
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="text-xs uppercase text-muted-foreground">{t("topup.cardHolder")}</div>
-                    <div className="mt-0.5 font-medium">{card.holder || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase text-muted-foreground">Bank</div>
-                    <div className="mt-0.5 font-medium">{card.bank || "—"}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-xl bg-primary/10 border border-primary/20 p-4 text-sm">
-                <div className="font-semibold mb-1">{amount.toLocaleString("ru-RU")} UZS</div>
-                <p className="text-xs text-muted-foreground">
-                  Yuqoridagi kartaga ushbu summani o'tkazing va chek rasmini yuklang.
-                </p>
-              </div>
+              <CardPicker
+                amountUzs={amount}
+                copyLabel={t("common.copied")}
+                cardNumberLabel={t("topup.cardNumber")}
+                cardHolderLabel={t("topup.cardHolder")}
+                bankLabel="Bank"
+                amountLabel="Tanlangan kartaga ushbu summani o'tkazing va chek rasmini yuklang."
+              />
             </div>
           </div>
         </div>

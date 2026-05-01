@@ -25,8 +25,14 @@ import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminBroadcast from "./pages/admin/AdminBroadcast.tsx";
 import { CompleteProfileDialog } from "./components/CompleteProfileDialog.tsx";
 import { AuthProvider } from "./hooks/useAuth.ts";
+import { useAdminNotifications } from "./hooks/useAdminNotifications.ts";
 
 const queryClient = new QueryClient();
+
+const GlobalAdminAlerts = () => {
+  useAdminNotifications();
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -36,6 +42,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <GlobalAdminAlerts />
             <CompleteProfileDialog />
             <Routes>
               <Route path="/" element={<Index />} />

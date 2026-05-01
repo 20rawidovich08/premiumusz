@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Copy, Upload, Star, CreditCard, CheckCircle2, Bot } from "lucide-react";
+import { CardPicker } from "@/components/CardPicker";
 
 interface Plan {
   id: string;
@@ -32,7 +33,7 @@ const Order = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [planId, setPlanId] = useState<string>(params.get("plan") ?? "");
   const [method, setMethod] = useState<"card" | "stars">("card");
-  const [card, setCard] = useState({ number: "", holder: "", bank: "" });
+  
   const [botUsername, setBotUsername] = useState("");
   const [starsEnabled, setStarsEnabled] = useState(true);
   const [cardEnabled, setCardEnabled] = useState(true);
@@ -47,15 +48,10 @@ const Order = () => {
     (async () => {
       const [{ data: planData }, { data: settingsData }] = await Promise.all([
         supabase.from("plans").select("id,duration_months,price_uzs,price_stars").eq("active", true).order("duration_months"),
-        supabase.from("settings").select("key,value").in("key", ["card_number", "card_holder", "card_bank", "bot_username", "stars_enabled", "card_enabled"]),
+        supabase.from("settings").select("key,value").in("key", ["bot_username", "stars_enabled", "card_enabled"]),
       ]);
       setPlans((planData as Plan[]) ?? []);
       const map = Object.fromEntries((settingsData ?? []).map((s: any) => [s.key, s.value]));
-      setCard({
-        number: typeof map.card_number === "string" ? map.card_number : "",
-        holder: typeof map.card_holder === "string" ? map.card_holder : "",
-        bank: typeof map.card_bank === "string" ? map.card_bank : "",
-      });
       setBotUsername(typeof map.bot_username === "string" ? map.bot_username : "");
       setStarsEnabled(map.stars_enabled !== false);
       setCardEnabled(map.card_enabled !== false);
@@ -225,25 +221,12 @@ const Order = () => {
                       </div>
                     </div>
                   )}
-                  <div className="rounded-xl bg-secondary/60 p-4">
-                    <div className="text-xs uppercase text-muted-foreground">{t("order.cardNumber")}</div>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className="font-mono text-lg tracking-wider">{card.number || "—"}</span>
-                      <button onClick={() => copy(card.number)} className="rounded-lg p-2 hover:bg-background/50">
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <div className="text-xs uppercase text-muted-foreground">{t("order.cardHolder")}</div>
-                        <div className="mt-0.5 font-medium">{card.holder || "—"}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs uppercase text-muted-foreground">Bank</div>
-                        <div className="mt-0.5 font-medium">{card.bank || "—"}</div>
-                      </div>
-                    </div>
-                  </div>
+                  <CardPicker
+                    copyLabel={t("order.copied")}
+                    cardNumberLabel={t("order.cardNumber")}
+                    cardHolderLabel={t("order.cardHolder")}
+                    bankLabel="Bank"
+                  />
 
                   <div>
                     <Label>{t("order.uploadReceipt")} *</Label>
