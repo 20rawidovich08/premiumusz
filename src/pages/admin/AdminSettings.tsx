@@ -128,7 +128,7 @@ const AdminSettings = () => {
                   <Input
                     value={c.number}
                     onChange={(e) => updateCard(idx, { number: e.target.value })}
-                    onBlur={() => saveCards(cards)}
+                    onBlur={(e) => commitCard(idx, { number: e.target.value })}
                     placeholder="8600 1234 5678 9012"
                   />
                 </div>
@@ -138,7 +138,7 @@ const AdminSettings = () => {
                     <Input
                       value={c.holder}
                       onChange={(e) => updateCard(idx, { holder: e.target.value })}
-                      onBlur={() => saveCards(cards)}
+                      onBlur={(e) => commitCard(idx, { holder: e.target.value })}
                     />
                   </div>
                   <div>
@@ -146,7 +146,7 @@ const AdminSettings = () => {
                     <Input
                       value={c.bank}
                       onChange={(e) => updateCard(idx, { bank: e.target.value })}
-                      onBlur={() => saveCards(cards)}
+                      onBlur={(e) => commitCard(idx, { bank: e.target.value })}
                     />
                   </div>
                 </div>
