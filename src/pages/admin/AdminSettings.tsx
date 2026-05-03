@@ -82,7 +82,17 @@ const AdminSettings = () => {
     setCards((prev) => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
   };
 
-  const addCard = () => setCards((prev) => [...prev, { number: "", holder: "", bank: "" }]);
+  const commitCard = (idx: number, patch: Partial<CardItem>) => {
+    const next = cards.map((c, i) => (i === idx ? { ...c, ...patch } : c));
+    saveCards(next);
+  };
+
+  const addCard = async () => {
+    const next = [...cards, { number: "", holder: "", bank: "" }];
+    setCards(next);
+    const { error } = await supabase.from("settings").upsert({ key: "cards", value: next });
+    if (error) toast.error(error.message);
+  };
   const removeCard = (idx: number) => {
     const next = cards.filter((_, i) => i !== idx);
     saveCards(next);
@@ -118,7 +128,7 @@ const AdminSettings = () => {
                   <Input
                     value={c.number}
                     onChange={(e) => updateCard(idx, { number: e.target.value })}
-                    onBlur={() => saveCards(cards)}
+                    onBlur={(e) => commitCard(idx, { number: e.target.value })}
                     placeholder="8600 1234 5678 9012"
                   />
                 </div>
@@ -128,7 +138,7 @@ const AdminSettings = () => {
                     <Input
                       value={c.holder}
                       onChange={(e) => updateCard(idx, { holder: e.target.value })}
-                      onBlur={() => saveCards(cards)}
+                      onBlur={(e) => commitCard(idx, { holder: e.target.value })}
                     />
                   </div>
                   <div>
@@ -136,7 +146,7 @@ const AdminSettings = () => {
                     <Input
                       value={c.bank}
                       onChange={(e) => updateCard(idx, { bank: e.target.value })}
-                      onBlur={() => saveCards(cards)}
+                      onBlur={(e) => commitCard(idx, { bank: e.target.value })}
                     />
                   </div>
                 </div>

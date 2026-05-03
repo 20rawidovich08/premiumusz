@@ -37,7 +37,11 @@ const AdminDashboard = () => {
   const [a, setA] = useState<Analytics | null>(null);
 
   useEffect(() => {
-    supabase.rpc("admin_analytics").then(({ data }) => {
+    supabase.rpc("admin_analytics").then(({ data, error }) => {
+      if (error) {
+        console.error("admin_analytics error", error);
+        return;
+      }
       if (data) setA(data as unknown as Analytics);
     });
   }, []);
