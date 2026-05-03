@@ -82,7 +82,17 @@ const AdminSettings = () => {
     setCards((prev) => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
   };
 
-  const addCard = () => setCards((prev) => [...prev, { number: "", holder: "", bank: "" }]);
+  const commitCard = (idx: number, patch: Partial<CardItem>) => {
+    const next = cards.map((c, i) => (i === idx ? { ...c, ...patch } : c));
+    saveCards(next);
+  };
+
+  const addCard = async () => {
+    const next = [...cards, { number: "", holder: "", bank: "" }];
+    setCards(next);
+    const { error } = await supabase.from("settings").upsert({ key: "cards", value: next });
+    if (error) toast.error(error.message);
+  };
   const removeCard = (idx: number) => {
     const next = cards.filter((_, i) => i !== idx);
     saveCards(next);
