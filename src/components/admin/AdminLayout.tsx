@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAdminT } from "@/lib/adminI18n";
-import { requestAdminNotificationPermission, useAdminNotifications } from "@/hooks/useAdminNotifications";
+import { requestAdminNotificationPermission } from "@/hooks/useAdminNotifications";
 import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag, Star, Wallet, Bell } from "lucide-react";
 
 const items = [
@@ -22,7 +22,6 @@ export const AdminLayout = () => {
   const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const t = useAdminT();
-  useAdminNotifications();
 
   useEffect(() => {
     if (!loading && !user) navigate("/admin/login", { replace: true });
