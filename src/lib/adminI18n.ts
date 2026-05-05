@@ -95,6 +95,7 @@ const uzDict = {
     adminTelegramIds: "Admin Telegram ID lari",
     adminTelegramIdsHint: "Bot orqali xabar oladigan adminlarning Telegram ID raqamlari (vergul bilan ajrating).",
     promos: "Promokodlar",
+    support: "Qo'llab-quvvatlash",
   };
 
 const ruDict = {
