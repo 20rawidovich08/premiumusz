@@ -5,12 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAdminT } from "@/lib/adminI18n";
 import { requestAdminNotificationPermission } from "@/hooks/useAdminNotifications";
-import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag, Star, Wallet, Bell, Ticket } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag, Star, Wallet, Bell, Ticket, MessageCircle } from "lucide-react";
 
 const items = [
   { to: "/admin", end: true, icon: LayoutDashboard, labelKey: "dashboard" },
   { to: "/admin/orders", icon: ShoppingBag, labelKey: "orders" },
   { to: "/admin/topups", icon: Wallet, labelKey: "topups" },
+  { to: "/admin/support", icon: MessageCircle, labelKey: "support" },
   { to: "/admin/users", icon: Users, labelKey: "users" },
   { to: "/admin/plans", icon: Tag, labelKey: "plans" },
   { to: "/admin/stars", icon: Star, labelKey: "stars" },
