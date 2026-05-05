@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Crown, Wallet, CheckCircle2 } from "lucide-react";
+import { PromoInput } from "@/components/PromoInput";
 
 interface Plan { id: string; duration_months: number; price_uzs: number; }
 
@@ -24,6 +25,7 @@ const BuyPremium = () => {
   const [balance, setBalance] = useState(0);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ num: string } | null>(null);
+  const [promo, setPromo] = useState<{ code: string; discount: number; final: number } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth?next=/buy/premium", { replace: true });
@@ -43,7 +45,8 @@ const BuyPremium = () => {
   }, [user]); // eslint-disable-line
 
   const selected = plans.find((p) => p.id === planId);
-  const insufficient = selected ? balance < Number(selected.price_uzs) : false;
+  const finalAmount = promo ? promo.final : Number(selected?.price_uzs ?? 0);
+  const insufficient = selected ? balance < finalAmount : false;
 
   const submit = async () => {
     if (!selected) return;
@@ -52,8 +55,8 @@ const BuyPremium = () => {
     if (!/^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(tgTrim)) return toast.error(t("buy.targetInvalid"));
     if (insufficient) return toast.error(t("buy.insufficient"));
     setBusy(true);
-    const { data, error } = await supabase.rpc("purchase_premium_with_balance", {
-      p_plan_id: selected.id, p_telegram: tgTrim,
+    const { data, error } = await supabase.rpc("purchase_premium_with_promo", {
+      p_plan_id: selected.id, p_telegram: tgTrim, p_promo_code: promo?.code ?? null,
     });
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -132,6 +135,10 @@ const BuyPremium = () => {
               <p className="mt-1 text-xs text-muted-foreground">{t("buy.targetHelp")}</p>
             </div>
 
+            {selected && (
+              <PromoInput amount={Number(selected.price_uzs)} type="premium" onApply={setPromo} />
+            )}
+
             {insufficient && (
               <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-4 text-sm">
                 {t("buy.insufficient")} <Link to="/topup" className="ml-2 underline">{t("nav.topup")}</Link>
@@ -142,8 +149,13 @@ const BuyPremium = () => {
               <div>
                 <div className="text-xs text-muted-foreground">{t("buy.price")}</div>
                 <div className="font-display text-2xl font-bold text-gradient">
-                  {selected ? Number(selected.price_uzs).toLocaleString("ru-RU") : 0} UZS
+                  {finalAmount.toLocaleString("ru-RU")} UZS
                 </div>
+                {promo && selected && (
+                  <div className="text-xs text-muted-foreground line-through">
+                    {Number(selected.price_uzs).toLocaleString("ru-RU")} UZS
+                  </div>
+                )}
               </div>
               <Button
                 disabled={busy || insufficient || !selected}

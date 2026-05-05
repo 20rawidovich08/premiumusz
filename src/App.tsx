@@ -23,7 +23,13 @@ import AdminPlans from "./pages/admin/AdminPlans.tsx";
 import AdminStars from "./pages/admin/AdminStars.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminBroadcast from "./pages/admin/AdminBroadcast.tsx";
+import AdminPromos from "./pages/admin/AdminPromos.tsx";
+import Faq from "./pages/Faq.tsx";
+import Terms from "./pages/Terms.tsx";
+import Privacy from "./pages/Privacy.tsx";
+import Track from "./pages/Track.tsx";
 import { CompleteProfileDialog } from "./components/CompleteProfileDialog.tsx";
+import { SupportChat } from "./components/SupportChat.tsx";
 import { AuthProvider } from "./hooks/useAuth.ts";
 import { useAdminNotifications } from "./hooks/useAdminNotifications.ts";
 
@@ -32,6 +38,11 @@ const queryClient = new QueryClient();
 const GlobalAdminAlerts = () => {
   useAdminNotifications();
   return null;
+};
+
+const SupportChatGuard = () => {
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) return null;
+  return <SupportChat />;
 };
 
 const App = () => (
@@ -44,6 +55,7 @@ const App = () => (
           <BrowserRouter>
             <GlobalAdminAlerts />
             <CompleteProfileDialog />
+            <SupportChatGuard />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/pricing" element={<Pricing />} />
@@ -53,6 +65,10 @@ const App = () => (
               <Route path="/topup" element={<TopUp />} />
               <Route path="/buy/premium" element={<BuyPremium />} />
               <Route path="/buy/stars" element={<Stars />} />
+              <Route path="/track" element={<Track />} />
+              <Route path="/faq" element={<Faq />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
@@ -61,6 +77,7 @@ const App = () => (
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="plans" element={<AdminPlans />} />
                 <Route path="stars" element={<AdminStars />} />
+                <Route path="promos" element={<AdminPromos />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="broadcast" element={<AdminBroadcast />} />
               </Route>

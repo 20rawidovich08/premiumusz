@@ -15,7 +15,9 @@ interface Analytics {
   revenue_month: number;
   revenue_total: number;
   daily: Array<{ date: string; revenue: number; orders: number }>;
+  monthly?: Array<{ month: string; revenue: number; orders: number }>;
   by_product: Array<{ type: string; count: number; revenue: number }>;
+  top_customers?: Array<{ name: string; phone: string; is_web: boolean; orders_count: number; total_spent: number }>;
 }
 
 const StatCard = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: string }) => (

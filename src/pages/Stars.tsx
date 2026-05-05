@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Star, TrendingUp, Sparkles, Wallet, CheckCircle2 } from "lucide-react";
+import { PromoInput } from "@/components/PromoInput";
 
 interface Pkg { id: string; stars: number; }
 
@@ -27,6 +28,7 @@ const Stars = () => {
   const [balance, setBalance] = useState(0);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ num: string } | null>(null);
+  const [promo, setPromo] = useState<{ code: string; discount: number; final: number } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -58,23 +60,20 @@ const Stars = () => {
   }, [user]);
 
   const customPrice = useMemo(() => Math.max(0, Math.floor(custom)) * rate, [custom, rate]);
+  const finalPrice = promo ? promo.final : customPrice;
   const valid = custom >= minStars;
-  const insufficient = user ? balance < customPrice : false;
+  const insufficient = user ? balance < finalPrice : false;
 
   const submit = async () => {
-    if (!user) {
-      navigate("/auth?next=/stars");
-      return;
-    }
+    if (!user) { navigate("/auth?next=/stars"); return; }
     if (!valid) return toast.error(`${t("stars.min")}: ${minStars}`);
     const tgTrim = tg.trim();
     if (!tgTrim) return toast.error(t("buy.target") + " — " + t("common.required"));
     if (!/^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(tgTrim)) return toast.error(t("buy.targetInvalid"));
     if (insufficient) return toast.error(t("buy.insufficient"));
     setBusy(true);
-    const { data, error } = await supabase.rpc("purchase_stars_with_balance", {
-      p_stars: Math.floor(custom),
-      p_telegram: tgTrim,
+    const { data, error } = await supabase.rpc("purchase_stars_with_promo", {
+      p_stars: Math.floor(custom), p_telegram: tgTrim, p_promo_code: promo?.code ?? null,
     });
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -187,6 +186,10 @@ const Stars = () => {
                 <p className="mt-1 text-xs text-muted-foreground">{t("buy.targetHelp")}</p>
               </div>
 
+              {user && valid && (
+                <PromoInput amount={customPrice} type="stars" onApply={setPromo} />
+              )}
+
               {user && insufficient && valid && (
                 <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-4 text-sm">
                   {t("buy.insufficient")} <Link to="/topup" className="ml-2 underline">{t("nav.topup")}</Link>
@@ -197,9 +200,12 @@ const Stars = () => {
                 <div>
                   <div className="text-xs text-muted-foreground">{t("buy.price")}</div>
                   <div className="font-display text-3xl font-bold text-gradient">
-                    {customPrice.toLocaleString("ru-RU")}
+                    {finalPrice.toLocaleString("ru-RU")}
                     <span className="ml-1 text-sm font-normal text-muted-foreground">UZS</span>
                   </div>
+                  {promo && (
+                    <div className="text-xs text-muted-foreground line-through">{customPrice.toLocaleString("ru-RU")} UZS</div>
+                  )}
                 </div>
                 <Button
                   disabled={busy || !valid || (!!user && insufficient)}

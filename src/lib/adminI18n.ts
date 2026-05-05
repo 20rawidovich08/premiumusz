@@ -93,7 +93,8 @@ const uzDict = {
     sending: "Yuborilmoqda...",
     sent: "Yuborildi",
     adminTelegramIds: "Admin Telegram ID lari",
-    adminTelegramIdsHint: "Bot orqali xabar oladigan adminlarning Telegram ID raqamlari (vergul bilan ajrating). Bu IDli foydalanuvchilarda botda 🛠 Admin panel tugmasi paydo bo'ladi.",
+    adminTelegramIdsHint: "Bot orqali xabar oladigan adminlarning Telegram ID raqamlari (vergul bilan ajrating).",
+    promos: "Promokodlar",
   };
 
 const ruDict = {
@@ -186,7 +187,8 @@ const ruDict = {
     sending: "Отправка...",
     sent: "Отправлено",
     adminTelegramIds: "Telegram ID администраторов",
-    adminTelegramIdsHint: "Telegram ID администраторов, которым бот будет отправлять уведомления (через запятую). У этих пользователей в боте появится кнопка 🛠 Админ-панель.",
+    adminTelegramIdsHint: "Telegram ID администраторов (через запятую).",
+    promos: "Промокоды",
   };
 
 const adminDict: Record<AdminLang, Record<string, string>> = { uz: uzDict, ru: ruDict, en: ruDict };
