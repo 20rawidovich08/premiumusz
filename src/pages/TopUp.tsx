@@ -21,6 +21,7 @@ const TopUp = () => {
   const [receipt, setReceipt] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [online, setOnline] = useState({ click: false, payme: false, uzum: false });
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth", { replace: true });
@@ -30,10 +31,15 @@ const TopUp = () => {
     supabase
       .from("settings")
       .select("key,value")
-      .eq("key", "min_topup_uzs")
+      .in("key", ["min_topup_uzs", "click_enabled", "payme_enabled", "uzum_enabled"])
       .then(({ data }) => {
         const map = Object.fromEntries((data ?? []).map((r: any) => [r.key, r.value]));
         if (map.min_topup_uzs) setMinAmount(Number(map.min_topup_uzs));
+        setOnline({
+          click: map.click_enabled === true || map.click_enabled === "true",
+          payme: map.payme_enabled === true || map.payme_enabled === "true",
+          uzum: map.uzum_enabled === true || map.uzum_enabled === "true",
+        });
       });
   }, []);
 
