@@ -232,6 +232,7 @@ const AdminSettings = () => {
             </div>
           </div>
         ))}
+      </div>
 
       <div className="mt-6 rounded-2xl glass p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
