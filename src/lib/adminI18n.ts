@@ -190,6 +190,7 @@ const ruDict = {
     adminTelegramIds: "Telegram ID администраторов",
     adminTelegramIdsHint: "Telegram ID администраторов (через запятую).",
     promos: "Промокоды",
+    support: "Поддержка",
   };
 
 const adminDict: Record<AdminLang, Record<string, string>> = { uz: uzDict, ru: ruDict, en: ruDict };
