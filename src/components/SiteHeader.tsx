@@ -100,6 +100,9 @@ export const SiteHeader = () => {
                   <DropdownMenuItem onClick={() => navigate("/topup")}>
                     <Wallet className="mr-2 h-4 w-4" /> {t("nav.topup")}
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openSupportChat()}>
+                    <LifeBuoy className="mr-2 h-4 w-4" /> Qo'llab-quvvatlash
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut}>
                     <LogOut className="mr-2 h-4 w-4" /> {t("nav.signout")}
