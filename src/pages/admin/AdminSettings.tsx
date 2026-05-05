@@ -186,8 +186,52 @@ const AdminSettings = () => {
             />
             <p className="mt-1 text-xs text-muted-foreground">{t("adminTelegramIdsHint")}</p>
           </div>
+          <div>
+            <Label>Support Telegram (chat link)</Label>
+            <Input
+              placeholder="https://t.me/yourbot"
+              value={typeof s.support_telegram === "string" ? s.support_telegram : ""}
+              onChange={(e) => setField("support_telegram", e.target.value)}
+              onBlur={(e) => save("support_telegram", e.target.value)}
+            />
+          </div>
         </div>
       </div>
+
+      {/* To'lov provayderlari (kelajakda) */}
+      <div className="mt-6 rounded-2xl glass p-5 space-y-4">
+        <div>
+          <h3 className="font-semibold">To'lov provayderlari</h3>
+          <p className="text-xs text-muted-foreground mt-1">Click / Payme / Uzum kalitlarini kiriting. Hozircha ko'rsatkichli rejim — kalitlar saqlanadi, integratsiya keyinroq ulanadi.</p>
+        </div>
+        {[
+          { key: "click", label: "Click", fields: ["merchant_id", "service_id", "secret_key"] },
+          { key: "payme", label: "Payme", fields: ["merchant_id", "key"] },
+          { key: "uzum", label: "Uzum Bank", fields: ["merchant_id", "secret_key"] },
+        ].map((p) => (
+          <div key={p.key} className="rounded-xl border border-border/60 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{p.label}</span>
+              <Switch
+                checked={s[`${p.key}_enabled`] === true}
+                onCheckedChange={(v) => { setField(`${p.key}_enabled`, v); save(`${p.key}_enabled`, v); }}
+              />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {p.fields.map((f) => (
+                <div key={f}>
+                  <Label className="text-xs">{f}</Label>
+                  <Input
+                    type={f.includes("secret") || f === "key" ? "password" : "text"}
+                    value={typeof s[`${p.key}_${f}`] === "string" ? s[`${p.key}_${f}`] : ""}
+                    onChange={(e) => setField(`${p.key}_${f}`, e.target.value)}
+                    onBlur={(e) => save(`${p.key}_${f}`, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
 
       <div className="mt-6 rounded-2xl glass p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">

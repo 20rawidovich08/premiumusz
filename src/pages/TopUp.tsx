@@ -46,13 +46,26 @@ const TopUp = () => {
       const ext = receipt.name.split(".").pop() || "jpg";
       const path = `topup/${user.id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("receipts").upload(path, receipt, {
-        contentType: receipt.type,
-        upsert: false,
+        contentType: receipt.type, upsert: false,
       });
       if (upErr) throw upErr;
+
+      // AI chek tekshirish (background, blocking faqat past mos kelishda)
+      try {
+        const { data: check } = await supabase.functions.invoke("check-receipt", {
+          body: { receipt_path: path, expected_amount: amount },
+        });
+        if (check && !check.error) {
+          if (check.matches) {
+            toast.success(`✓ AI: chek summasi mos (${check.detected_amount?.toLocaleString("ru-RU")} UZS)`);
+          } else if (check.detected_amount > 0) {
+            toast.warning(`⚠ AI: chekda ${check.detected_amount?.toLocaleString("ru-RU")} UZS topildi (kiritilgan: ${amount.toLocaleString("ru-RU")})`);
+          }
+        }
+      } catch { /* ignore AI errors, don't block user */ }
+
       const { data: txId, error } = await supabase.rpc("request_topup", {
-        p_amount_uzs: amount,
-        p_receipt_path: path,
+        p_amount_uzs: amount, p_receipt_path: path,
       });
       if (error) throw error;
       if (txId) supabase.functions.invoke("notify-admin", { body: { topup_id: txId } }).catch(() => undefined);
