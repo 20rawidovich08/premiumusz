@@ -481,6 +481,83 @@ export type Database = {
         }
         Relationships: []
       }
+      support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_kind: string
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_kind: string
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_kind?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "support_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_threads: {
+        Row: {
+          created_at: string
+          guest_contact: string | null
+          guest_name: string | null
+          id: string
+          last_message_at: string
+          status: string
+          subject: string | null
+          unread_admin: number
+          unread_user: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          guest_contact?: string | null
+          guest_name?: string | null
+          id?: string
+          last_message_at?: string
+          status?: string
+          subject?: string | null
+          unread_admin?: number
+          unread_user?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          guest_contact?: string | null
+          guest_name?: string | null
+          id?: string
+          last_message_at?: string
+          status?: string
+          subject?: string | null
+          unread_admin?: number
+          unread_user?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -593,6 +670,11 @@ export type Database = {
       request_topup: {
         Args: { p_amount_uzs: number; p_receipt_path: string }
         Returns: string
+      }
+      support_get_or_create_thread: { Args: never; Returns: string }
+      support_mark_read: {
+        Args: { p_as: string; p_thread_id: string }
+        Returns: undefined
       }
       validate_promo_code: {
         Args: { p_amount: number; p_code: string; p_type: string }

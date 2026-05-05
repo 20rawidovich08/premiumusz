@@ -95,6 +95,7 @@ const uzDict = {
     adminTelegramIds: "Admin Telegram ID lari",
     adminTelegramIdsHint: "Bot orqali xabar oladigan adminlarning Telegram ID raqamlari (vergul bilan ajrating).",
     promos: "Promokodlar",
+    support: "Qo'llab-quvvatlash",
   };
 
 const ruDict = {
@@ -189,6 +190,7 @@ const ruDict = {
     adminTelegramIds: "Telegram ID администраторов",
     adminTelegramIdsHint: "Telegram ID администраторов (через запятую).",
     promos: "Промокоды",
+    support: "Поддержка",
   };
 
 const adminDict: Record<AdminLang, Record<string, string>> = { uz: uzDict, ru: ruDict, en: ruDict };

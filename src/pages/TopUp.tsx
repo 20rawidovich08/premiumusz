@@ -21,6 +21,7 @@ const TopUp = () => {
   const [receipt, setReceipt] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [online, setOnline] = useState({ click: false, payme: false, uzum: false });
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth", { replace: true });
@@ -30,10 +31,15 @@ const TopUp = () => {
     supabase
       .from("settings")
       .select("key,value")
-      .eq("key", "min_topup_uzs")
+      .in("key", ["min_topup_uzs", "click_enabled", "payme_enabled", "uzum_enabled"])
       .then(({ data }) => {
         const map = Object.fromEntries((data ?? []).map((r: any) => [r.key, r.value]));
         if (map.min_topup_uzs) setMinAmount(Number(map.min_topup_uzs));
+        setOnline({
+          click: map.click_enabled === true || map.click_enabled === "true",
+          payme: map.payme_enabled === true || map.payme_enabled === "true",
+          uzum: map.uzum_enabled === true || map.uzum_enabled === "true",
+        });
       });
   }, []);
 
@@ -110,6 +116,45 @@ const TopUp = () => {
             <Wallet className="h-8 w-8 text-primary" /> {t("topup.title")}
           </h1>
           <p className="mt-2 text-muted-foreground">{t("topup.subtitle")}</p>
+
+          {(online.click || online.payme || online.uzum) && (
+            <div className="mt-6 rounded-3xl glass p-6">
+              <h3 className="font-display text-lg font-bold">Onlayn to'lov</h3>
+              <p className="mt-1 text-xs text-muted-foreground">Tezkor to'lov tizimlari orqali balansni to'ldiring</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {online.click && (
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Click integratsiyasi tez orada ulanadi")}
+                    className="rounded-2xl border border-border/60 bg-secondary/40 p-4 text-left transition-all hover:border-primary/60 hover:bg-primary/5"
+                  >
+                    <div className="text-base font-bold text-[#00BFFF]">Click</div>
+                    <p className="mt-1 text-xs text-muted-foreground">Click orqali to'lov</p>
+                  </button>
+                )}
+                {online.payme && (
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Payme integratsiyasi tez orada ulanadi")}
+                    className="rounded-2xl border border-border/60 bg-secondary/40 p-4 text-left transition-all hover:border-primary/60 hover:bg-primary/5"
+                  >
+                    <div className="text-base font-bold text-[#36CFC9]">Payme</div>
+                    <p className="mt-1 text-xs text-muted-foreground">Payme orqali to'lov</p>
+                  </button>
+                )}
+                {online.uzum && (
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Uzum integratsiyasi tez orada ulanadi")}
+                    className="rounded-2xl border border-border/60 bg-secondary/40 p-4 text-left transition-all hover:border-primary/60 hover:bg-primary/5"
+                  >
+                    <div className="text-base font-bold text-[#7C3AED]">Uzum</div>
+                    <p className="mt-1 text-xs text-muted-foreground">Uzum orqali to'lov</p>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mt-8 grid gap-6 md:grid-cols-2">
             <div className="rounded-3xl glass p-6 space-y-4">

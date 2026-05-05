@@ -24,6 +24,7 @@ import AdminStars from "./pages/admin/AdminStars.tsx";
 import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminBroadcast from "./pages/admin/AdminBroadcast.tsx";
 import AdminPromos from "./pages/admin/AdminPromos.tsx";
+import AdminSupport from "./pages/admin/AdminSupport.tsx";
 import Faq from "./pages/Faq.tsx";
 import Terms from "./pages/Terms.tsx";
 import Privacy from "./pages/Privacy.tsx";
@@ -78,6 +79,7 @@ const App = () => (
                 <Route path="plans" element={<AdminPlans />} />
                 <Route path="stars" element={<AdminStars />} />
                 <Route path="promos" element={<AdminPromos />} />
+                <Route path="support" element={<AdminSupport />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="broadcast" element={<AdminBroadcast />} />
               </Route>
