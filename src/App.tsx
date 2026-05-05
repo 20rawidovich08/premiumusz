@@ -40,6 +40,11 @@ const GlobalAdminAlerts = () => {
   return null;
 };
 
+const SupportChatGuard = () => {
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) return null;
+  return <SupportChat />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <I18nProvider>
