@@ -3,7 +3,8 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Wallet, User as UserIcon, LogOut, Menu } from "lucide-react";
+import { Sparkles, Wallet, User as UserIcon, LogOut, Menu, LifeBuoy } from "lucide-react";
+import { openSupportChat } from "@/components/SupportChat";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import {
