@@ -311,6 +311,92 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_code_uses: {
+        Row: {
+          bot_user_id: string | null
+          created_at: string
+          discount_uzs: number
+          id: string
+          order_id: string | null
+          promo_id: string
+          user_id: string | null
+        }
+        Insert: {
+          bot_user_id?: string | null
+          created_at?: string
+          discount_uzs: number
+          id?: string
+          order_id?: string | null
+          promo_id: string
+          user_id?: string | null
+        }
+        Update: {
+          bot_user_id?: string | null
+          created_at?: string
+          discount_uzs?: number
+          id?: string
+          order_id?: string | null
+          promo_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_uses_promo_id_fkey"
+            columns: ["promo_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_codes: {
+        Row: {
+          active: boolean
+          applies_to: string
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          min_amount: number
+          per_user_limit: number
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          active?: boolean
+          applies_to?: string
+          code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_amount?: number
+          per_user_limit?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          active?: boolean
+          applies_to?: string
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_amount?: number
+          per_user_limit?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
       referral_events: {
         Row: {
           created_at: string
@@ -479,6 +565,15 @@ export type Database = {
           order_number: string
         }[]
       }
+      purchase_premium_with_promo: {
+        Args: { p_plan_id: string; p_promo_code?: string; p_telegram: string }
+        Returns: {
+          discount_uzs: number
+          final_amount: number
+          order_id: string
+          order_number: string
+        }[]
+      }
       purchase_stars_with_balance: {
         Args: { p_stars: number; p_telegram: string }
         Returns: {
@@ -486,9 +581,22 @@ export type Database = {
           order_number: string
         }[]
       }
+      purchase_stars_with_promo: {
+        Args: { p_promo_code?: string; p_stars: number; p_telegram: string }
+        Returns: {
+          discount_uzs: number
+          final_amount: number
+          order_id: string
+          order_number: string
+        }[]
+      }
       request_topup: {
         Args: { p_amount_uzs: number; p_receipt_path: string }
         Returns: string
+      }
+      validate_promo_code: {
+        Args: { p_amount: number; p_code: string; p_type: string }
+        Returns: Json
       }
     }
     Enums: {
