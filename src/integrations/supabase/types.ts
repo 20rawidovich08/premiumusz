@@ -71,6 +71,48 @@ export type Database = {
           },
         ]
       }
+      blog_posts: {
+        Row: {
+          author_id: string | null
+          content: string
+          cover_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published: boolean
+          published_at: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          content?: string
+          cover_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published?: boolean
+          published_at?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          cover_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published?: boolean
+          published_at?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bot_users: {
         Row: {
           balance: number
@@ -284,6 +326,7 @@ export type Database = {
       profiles: {
         Row: {
           balance: number
+          banned: boolean
           created_at: string
           full_name: string | null
           id: string
@@ -293,6 +336,7 @@ export type Database = {
         }
         Insert: {
           balance?: number
+          banned?: boolean
           created_at?: string
           full_name?: string | null
           id: string
@@ -302,6 +346,7 @@ export type Database = {
         }
         Update: {
           balance?: number
+          banned?: boolean
           created_at?: string
           full_name?: string | null
           id?: string
@@ -435,6 +480,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reviews: {
+        Row: {
+          approved: boolean
+          body: string
+          created_at: string
+          display_name: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          approved?: boolean
+          body: string
+          created_at?: string
+          display_name: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          approved?: boolean
+          body?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       settings: {
         Row: {
@@ -602,6 +680,17 @@ export type Database = {
         Args: { p_approve: boolean; p_note?: string; p_tx_id: string }
         Returns: undefined
       }
+      admin_segment_bot_users: {
+        Args: { p_filter: string }
+        Returns: {
+          telegram_id: number
+        }[]
+      }
+      admin_set_user_banned: {
+        Args: { p_banned: boolean; p_kind: string; p_user_id: string }
+        Returns: undefined
+      }
+      cancel_pending_order: { Args: { p_order_id: string }; Returns: undefined }
       create_website_order: {
         Args: {
           p_full_name: string
