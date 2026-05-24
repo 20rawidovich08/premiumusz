@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAdminT } from "@/lib/adminI18n";
 import { requestAdminNotificationPermission } from "@/hooks/useAdminNotifications";
-import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag, Star, Wallet, Bell, Ticket, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Settings, Megaphone, LogOut, Sparkles, Tag, Star, Wallet, Bell, Ticket, MessageCircle, BookOpen } from "lucide-react";
 
 const items = [
   { to: "/admin", end: true, icon: LayoutDashboard, labelKey: "dashboard" },
@@ -16,6 +16,7 @@ const items = [
   { to: "/admin/plans", icon: Tag, labelKey: "plans" },
   { to: "/admin/stars", icon: Star, labelKey: "stars" },
   { to: "/admin/promos", icon: Ticket, labelKey: "promos" },
+  { to: "/admin/blog", icon: BookOpen, labelKey: "blog" },
   { to: "/admin/settings", icon: Settings, labelKey: "settings" },
   { to: "/admin/broadcast", icon: Megaphone, labelKey: "broadcast" },
 ] as const;
