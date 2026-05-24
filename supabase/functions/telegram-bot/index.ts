@@ -575,16 +575,21 @@ async function adminApproveOrder(chatId: number, orderId: string, approve: boole
   });
   // Notify the user
   if (order.bot_user_id) {
-    const { data: bu } = await supabase.from("bot_users").select("telegram_id").eq("id", order.bot_user_id).single();
+    const { data: bu } = await supabase.from("bot_users").select("telegram_id,full_name,username").eq("id", order.bot_user_id).single();
     if (bu?.telegram_id) {
-      await tg("sendMessage", {
-        chat_id: bu.telegram_id,
-        text: approve
-          ? `✅ Buyurtmangiz <code>${order.order_number}</code> tasdiqlandi va tez orada yetkaziladi.`
-          : `❌ Buyurtmangiz <code>${order.order_number}</code> rad etildi. Mablag' qaytarildi.`,
-        parse_mode: "HTML",
-      }).catch(() => {});
+      if (approve) {
+        await sendApprovedMessageToBuyer(bu.telegram_id, order);
+        await postOrderToChannel(order, bu.full_name || (bu.username ? "@" + bu.username : ""));
+      } else {
+        await tg("sendMessage", {
+          chat_id: bu.telegram_id,
+          text: `❌ Buyurtmangiz <code>${order.order_number}</code> rad etildi. Mablag' qaytarildi.`,
+          parse_mode: "HTML",
+        }).catch(() => {});
+      }
     }
+  } else if (approve) {
+    await postOrderToChannel(order, order.contact_full_name || "");
   }
 }
 
