@@ -25,6 +25,9 @@ import AdminSettings from "./pages/admin/AdminSettings.tsx";
 import AdminBroadcast from "./pages/admin/AdminBroadcast.tsx";
 import AdminPromos from "./pages/admin/AdminPromos.tsx";
 import AdminSupport from "./pages/admin/AdminSupport.tsx";
+import AdminBlog from "./pages/admin/AdminBlog.tsx";
+import Blog from "./pages/Blog.tsx";
+import BlogPost from "./pages/BlogPost.tsx";
 import Faq from "./pages/Faq.tsx";
 import Terms from "./pages/Terms.tsx";
 import Privacy from "./pages/Privacy.tsx";
@@ -70,6 +73,8 @@ const App = () => (
               <Route path="/faq" element={<Faq />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
@@ -80,6 +85,7 @@ const App = () => (
                 <Route path="stars" element={<AdminStars />} />
                 <Route path="promos" element={<AdminPromos />} />
                 <Route path="support" element={<AdminSupport />} />
+                <Route path="blog" element={<AdminBlog />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="broadcast" element={<AdminBroadcast />} />
               </Route>
