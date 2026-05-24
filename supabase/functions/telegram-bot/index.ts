@@ -194,6 +194,57 @@ async function notifyAdminTopup(tx: any, user: any, photoFileId?: string) {
   await broadcastToAdmins(text, photoFileId, kb);
 }
 
+// ============ Channel post on approval ============
+async function getChannelId(): Promise<string | null> {
+  const v = await getSetting("post_channel_id", null);
+  if (!v) return null;
+  const s = String(v).trim();
+  return s || null;
+}
+
+async function getBotUsername(): Promise<string> {
+  const cached = await getSetting("bot_username", "");
+  if (cached) return String(cached).replace(/^@/, "");
+  const me = await tg("getMe", {});
+  return me?.result?.username || "";
+}
+
+async function postOrderToChannel(order: any, buyerName: string) {
+  const channel = await getChannelId();
+  if (!channel) return;
+  const isStars = order.product_type === "stars";
+  const head = isStars ? "📥 Yangi Stars Xarid" : "📥 Yangi Premium Xarid";
+  const productLine = isStars
+    ? `⭐️ Stars: <b>${order.stars_amount}</b>`
+    : `👑 Premium: <b>${order.duration_months} oy</b>`;
+  const key = `${isStars ? "stars" : "premium"}-${String(order.id).replace(/-/g, "").slice(0, 8)}`;
+  const botUsername = await getBotUsername();
+  const text =
+    `${head} <code>${order.order_number}</code>\n\n` +
+    `👤 Buyer: <b>${buyerName || "-"}</b>\n` +
+    `${productLine}\n` +
+    `💸 Paid: <b>${fmt(order.amount_uzs || 0)} UZS</b> (${order.payment_method})\n` +
+    `🆔 Key: <code>${key}</code>` +
+    (botUsername ? `\n\n@${botUsername}` : "");
+  await tg("sendMessage", { chat_id: channel, text, parse_mode: "HTML", disable_web_page_preview: true }).catch(() => {});
+}
+
+async function sendApprovedMessageToBuyer(chatId: number, order: any) {
+  const what = order.product_type === "stars"
+    ? `⭐ <b>${order.stars_amount} Stars</b>`
+    : `👑 <b>Premium ${order.duration_months} oy</b>`;
+  const target = order.telegram_target || order.contact_telegram || "";
+  await tg("sendMessage", {
+    chat_id: chatId,
+    parse_mode: "HTML",
+    text:
+      `✅ <b>Buyurtmangiz tasdiqlandi!</b>\n\n` +
+      `Sizning xarid qilgan ${what} ${target ? target + " ga " : ""}jo'natildi.\n\n` +
+      `№ <code>${order.order_number}</code>\n` +
+      `Rahmat! 🙏`,
+  }).catch(() => {});
+}
+
 // Check if a bot user is treated as admin (by telegram_id in settings).
 async function isBotAdmin(telegramId: number | string): Promise<boolean> {
   const recipients = await getAdminRecipients();
