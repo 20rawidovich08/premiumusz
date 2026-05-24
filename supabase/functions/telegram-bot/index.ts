@@ -1043,7 +1043,11 @@ Deno.serve(async (req) => {
       await clearWizard(user.id);
       await tg("sendMessage", {
         chat_id: chatId,
-        text: `✅ Chek qabul qilindi!\n\nSumma: <b>${fmt(step.amount)} UZS</b>\nAdmin tekshirgach balansingizga qo'shiladi.`,
+        text:
+          `✅ Chek qabul qilindi!\n\n` +
+          `Summa: <b>${fmt(step.amount)} UZS</b>\n\n` +
+          `⏳ <b>Iltimos admin tasdiqlashini kuting!</b>\n` +
+          `30 daqiqadan 24 soat ichida to'lovingiz tasdiqlanadi.`,
         parse_mode: "HTML",
         reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
       });
