@@ -66,21 +66,48 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
       let chatId: number | null = null;
+      let buyerName = order.contact_full_name || "";
       if (order.bot_user_id) {
-        const { data: bu } = await admin.from("bot_users").select("telegram_id").eq("id", order.bot_user_id).maybeSingle();
+        const { data: bu } = await admin.from("bot_users").select("telegram_id,full_name,username").eq("id", order.bot_user_id).maybeSingle();
         chatId = bu?.telegram_id ?? null;
+        buyerName = bu?.full_name || (bu?.username ? "@" + bu.username : buyerName);
       }
-      if (!chatId) return new Response(JSON.stringify({ ok: true, skipped: "no_chat" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
 
       const product = order.product_type === "stars"
         ? `⭐ ${order.stars_amount} Stars`
         : `👑 Premium ${order.duration_months} oy`;
-      const text = approved
-        ? `✅ <b>Buyurtmangiz tasdiqlandi!</b>\n\nNº <code>${order.order_number}</code>\n${product}\n🎯 ${order.telegram_target || "-"}\n\nTez orada yetkaziladi. Rahmat! 🙏${note ? "\n\n📝 " + note : ""}`
-        : `❌ <b>Buyurtmangiz rad etildi</b>\n\nNº <code>${order.order_number}</code>\n${product}\n\n${order.payment_method === "balance" ? `Pul balansingizga qaytarildi: ${fmt(order.amount_uzs || 0)} UZS\n` : ""}${note ? "\n📝 Sabab: " + note : ""}`;
-      await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+      const target = order.telegram_target || order.contact_telegram || "";
+
+      if (chatId) {
+        const text = approved
+          ? `✅ <b>Buyurtmangiz tasdiqlandi!</b>\n\nSizning xarid qilgan ${product} ${target ? target + " ga " : ""}jo'natildi.\n\nNº <code>${order.order_number}</code>\nRahmat! 🙏${note ? "\n\n📝 " + note : ""}`
+          : `❌ <b>Buyurtmangiz rad etildi</b>\n\nNº <code>${order.order_number}</code>\n${product}\n\n${order.payment_method === "balance" ? `Pul balansingizga qaytarildi: ${fmt(order.amount_uzs || 0)} UZS\n` : ""}${note ? "\n📝 Sabab: " + note : ""}`;
+        await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+      }
+
+      if (approved) {
+        // Post to public channel if configured
+        const { data: chRow } = await admin.from("settings").select("value").eq("key", "post_channel_id").maybeSingle();
+        const channel = chRow?.value ? String(chRow.value).trim() : "";
+        if (channel) {
+          const { data: botRow } = await admin.from("settings").select("value").eq("key", "bot_username").maybeSingle();
+          const botUsername = botRow?.value ? String(botRow.value).replace(/^@/, "") : "";
+          const isStars = order.product_type === "stars";
+          const head = isStars ? "📥 Yangi Stars Xarid" : "📥 Yangi Premium Xarid";
+          const productLine = isStars
+            ? `⭐️ Stars: <b>${order.stars_amount}</b>`
+            : `👑 Premium: <b>${order.duration_months} oy</b>`;
+          const key = `${isStars ? "stars" : "premium"}-${String(order.id).replace(/-/g, "").slice(0, 8)}`;
+          const channelText =
+            `${head} <code>${order.order_number}</code>\n\n` +
+            `👤 Buyer: <b>${buyerName || "-"}</b>\n` +
+            `${productLine}\n` +
+            `💸 Paid: <b>${fmt(order.amount_uzs || 0)} UZS</b> (${order.payment_method})\n` +
+            `🆔 Key: <code>${key}</code>` +
+            (botUsername ? `\n\n@${botUsername}` : "");
+          await tg("sendMessage", { chat_id: channel, text: channelText, parse_mode: "HTML", disable_web_page_preview: true });
+        }
+      }
     } else if (kind === "topup") {
       const { data: tx } = await admin.from("balance_transactions").select("*").eq("id", id).maybeSingle();
       if (!tx) return new Response(JSON.stringify({ ok: true, skipped: "no_tx" }), {

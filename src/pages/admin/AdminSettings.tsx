@@ -195,6 +195,18 @@ const AdminSettings = () => {
               onBlur={(e) => save("support_telegram", e.target.value)}
             />
           </div>
+          <div>
+            <Label>Post kanali (Channel ID yoki @username)</Label>
+            <Input
+              placeholder="@mychannel  yoki  -1001234567890"
+              value={typeof s.post_channel_id === "string" ? s.post_channel_id : ""}
+              onChange={(e) => setField("post_channel_id", e.target.value)}
+              onBlur={(e) => save("post_channel_id", e.target.value)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Botni shu kanalga admin qilib qo'shing. Har bir tasdiqlangan Stars/Premium xarid avtomatik post qilinadi.
+            </p>
+          </div>
         </div>
       </div>
 
