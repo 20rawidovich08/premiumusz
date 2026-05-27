@@ -209,24 +209,79 @@ async function getBotUsername(): Promise<string> {
   return me?.result?.username || "";
 }
 
+const DEFAULT_CHANNEL_TEMPLATE =
+  `📥 Yangi {product_kind} Xarid <code>{order_number}</code>\n\n` +
+  `👤 Mijoz: <b>{buyer}</b>\n` +
+  `{product_line}\n` +
+  `💸 Paid: <b>{amount} UZS</b> ({payment_method})\n` +
+  `🆔 Key: <code>{key}</code>\n\n` +
+  `@{bot_username}`;
+
+function renderTemplate(tpl: string, vars: Record<string, string>): string {
+  return tpl.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ""));
+}
+
 async function postOrderToChannel(order: any, buyerName: string) {
   const channel = await getChannelId();
   if (!channel) return;
   const isStars = order.product_type === "stars";
-  const head = isStars ? "📥 Yangi Stars Xarid" : "📥 Yangi Premium Xarid";
   const productLine = isStars
     ? `⭐️ Stars: <b>${order.stars_amount}</b>`
     : `👑 Premium: <b>${order.duration_months} oy</b>`;
   const key = `${isStars ? "stars" : "premium"}-${String(order.id).replace(/-/g, "").slice(0, 8)}`;
   const botUsername = await getBotUsername();
-  const text =
-    `${head} <code>${order.order_number}</code>\n\n` +
-    `👤 Buyer: <b>${buyerName || "-"}</b>\n` +
-    `${productLine}\n` +
-    `💸 Paid: <b>${fmt(order.amount_uzs || 0)} UZS</b> (${order.payment_method})\n` +
-    `🆔 Key: <code>${key}</code>` +
-    (botUsername ? `\n\n@${botUsername}` : "");
+  const tpl = String(await getSetting("channel_post_template", DEFAULT_CHANNEL_TEMPLATE)) || DEFAULT_CHANNEL_TEMPLATE;
+  const text = renderTemplate(tpl, {
+    product_kind: isStars ? "Stars" : "Premium",
+    product_type: order.product_type || "",
+    order_number: order.order_number || "",
+    buyer: buyerName || "-",
+    product_line: productLine,
+    stars: String(order.stars_amount ?? ""),
+    duration_months: String(order.duration_months ?? ""),
+    amount: fmt(order.amount_uzs || 0),
+    payment_method: order.payment_method || "",
+    key,
+    bot_username: botUsername,
+  });
   await tg("sendMessage", { chat_id: channel, text, parse_mode: "HTML", disable_web_page_preview: true }).catch(() => {});
+}
+
+// ============ Fragment API auto-delivery ============
+async function deliverViaFragment(order: any): Promise<{ ok: boolean; info: string }> {
+  const enabled = await getSetting("fragment_enabled", false);
+  if (!enabled) return { ok: false, info: "disabled" };
+  const apiKey = String(await getSetting("fragment_api_key", "") || "");
+  const baseUrl = String(await getSetting("fragment_api_url", "https://fragment-api.uz") || "https://fragment-api.uz").replace(/\/+$/, "");
+  if (!apiKey) return { ok: false, info: "no_api_key" };
+
+  const target = String(order.telegram_target || order.contact_telegram || "").replace(/^@/, "").trim();
+  if (!target) return { ok: false, info: "no_target" };
+
+  const isStars = order.product_type === "stars";
+  const endpoint = isStars
+    ? String(await getSetting("fragment_stars_endpoint", "/api/v1/order/stars"))
+    : String(await getSetting("fragment_premium_endpoint", "/api/v1/order/premium"));
+
+  const payload: Record<string, any> = { username: target };
+  if (isStars) payload.quantity = Number(order.stars_amount || 0);
+  else payload.months = Number(order.duration_months || 0);
+
+  try {
+    const res = await fetch(`${baseUrl}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const txt = await res.text();
+    if (!res.ok) return { ok: false, info: `HTTP ${res.status}: ${txt.slice(0, 200)}` };
+    return { ok: true, info: txt.slice(0, 200) };
+  } catch (e: any) {
+    return { ok: false, info: e?.message || "fetch_error" };
+  }
 }
 
 async function sendApprovedMessageToBuyer(chatId: number, order: any) {
@@ -578,6 +633,10 @@ async function adminApproveOrder(chatId: number, orderId: string, approve: boole
     const { data: bu } = await supabase.from("bot_users").select("telegram_id,full_name,username").eq("id", order.bot_user_id).single();
     if (bu?.telegram_id) {
       if (approve) {
+        const delivery = await deliverViaFragment(order);
+        if (!delivery.ok && delivery.info !== "disabled") {
+          await supabase.from("orders").update({ admin_note: `${order.admin_note || ""} [Fragment: ${delivery.info}]`.trim() }).eq("id", order.id);
+        }
         await sendApprovedMessageToBuyer(bu.telegram_id, order);
         await postOrderToChannel(order, bu.full_name || (bu.username ? "@" + bu.username : ""));
       } else {
@@ -589,6 +648,7 @@ async function adminApproveOrder(chatId: number, orderId: string, approve: boole
       }
     }
   } else if (approve) {
+    await deliverViaFragment(order).catch(() => ({ ok: false, info: "" }));
     await postOrderToChannel(order, order.contact_full_name || "");
   }
 }

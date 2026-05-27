@@ -86,25 +86,74 @@ Deno.serve(async (req) => {
       }
 
       if (approved) {
+        // Fragment API auto-delivery
+        try {
+          const { data: rows } = await admin.from("settings").select("key,value").in("key", [
+            "fragment_enabled", "fragment_api_key", "fragment_api_url",
+            "fragment_stars_endpoint", "fragment_premium_endpoint",
+          ]);
+          const cfg: Record<string, any> = {};
+          (rows ?? []).forEach((r: any) => { cfg[r.key] = r.value; });
+          if (cfg.fragment_enabled && cfg.fragment_api_key) {
+            const baseUrl = String(cfg.fragment_api_url || "https://fragment-api.uz").replace(/\/+$/, "");
+            const target = String(order.telegram_target || order.contact_telegram || "").replace(/^@/, "").trim();
+            const isStars = order.product_type === "stars";
+            const endpoint = isStars
+              ? String(cfg.fragment_stars_endpoint || "/api/v1/order/stars")
+              : String(cfg.fragment_premium_endpoint || "/api/v1/order/premium");
+            const payload: Record<string, any> = { username: target };
+            if (isStars) payload.quantity = Number(order.stars_amount || 0);
+            else payload.months = Number(order.duration_months || 0);
+            if (target) {
+              const fr = await fetch(`${baseUrl}${endpoint}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.fragment_api_key}` },
+                body: JSON.stringify(payload),
+              });
+              if (!fr.ok) {
+                const t = await fr.text();
+                await admin.from("orders").update({
+                  admin_note: `${order.admin_note || ""} [Fragment: HTTP ${fr.status} ${t.slice(0, 160)}]`.trim(),
+                }).eq("id", order.id);
+              }
+            }
+          }
+        } catch (e) { console.error("fragment delivery error", e); }
+
         // Post to public channel if configured
         const { data: chRow } = await admin.from("settings").select("value").eq("key", "post_channel_id").maybeSingle();
         const channel = chRow?.value ? String(chRow.value).trim() : "";
         if (channel) {
+          const { data: tplRow } = await admin.from("settings").select("value").eq("key", "channel_post_template").maybeSingle();
           const { data: botRow } = await admin.from("settings").select("value").eq("key", "bot_username").maybeSingle();
           const botUsername = botRow?.value ? String(botRow.value).replace(/^@/, "") : "";
           const isStars = order.product_type === "stars";
-          const head = isStars ? "📥 Yangi Stars Xarid" : "📥 Yangi Premium Xarid";
           const productLine = isStars
             ? `⭐️ Stars: <b>${order.stars_amount}</b>`
             : `👑 Premium: <b>${order.duration_months} oy</b>`;
           const key = `${isStars ? "stars" : "premium"}-${String(order.id).replace(/-/g, "").slice(0, 8)}`;
-          const channelText =
-            `${head} <code>${order.order_number}</code>\n\n` +
-            `👤 Buyer: <b>${buyerName || "-"}</b>\n` +
-            `${productLine}\n` +
-            `💸 Paid: <b>${fmt(order.amount_uzs || 0)} UZS</b> (${order.payment_method})\n` +
-            `🆔 Key: <code>${key}</code>` +
-            (botUsername ? `\n\n@${botUsername}` : "");
+          const DEFAULT_TPL =
+            `📥 Yangi {product_kind} Xarid <code>{order_number}</code>\n\n` +
+            `👤 Mijoz: <b>{buyer}</b>\n` +
+            `{product_line}\n` +
+            `💸 Paid: <b>{amount} UZS</b> ({payment_method})\n` +
+            `🆔 Key: <code>{key}</code>\n\n` +
+            `@{bot_username}`;
+          const tpl = (tplRow?.value && String(tplRow.value)) || DEFAULT_TPL;
+          const vars: Record<string, string> = {
+            product_kind: isStars ? "Stars" : "Premium",
+            product_type: order.product_type || "",
+            order_number: order.order_number || "",
+            buyer: buyerName || "-",
+            product_line: productLine,
+            stars: String(order.stars_amount ?? ""),
+            duration_months: String(order.duration_months ?? ""),
+            amount: fmt(order.amount_uzs || 0),
+            payment_method: order.payment_method || "",
+            key,
+            bot_username: botUsername,
+          };
+          const channelText = tpl.replace(/\{(\w+)\}/g, (_: string, k: string) => vars[k] ?? "");
           await tg("sendMessage", { chat_id: channel, text: channelText, parse_mode: "HTML", disable_web_page_preview: true });
         }
       }
