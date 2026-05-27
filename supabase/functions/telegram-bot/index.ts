@@ -633,6 +633,10 @@ async function adminApproveOrder(chatId: number, orderId: string, approve: boole
     const { data: bu } = await supabase.from("bot_users").select("telegram_id,full_name,username").eq("id", order.bot_user_id).single();
     if (bu?.telegram_id) {
       if (approve) {
+        const delivery = await deliverViaFragment(order);
+        if (!delivery.ok && delivery.info !== "disabled") {
+          await supabase.from("orders").update({ admin_note: `${order.admin_note || ""} [Fragment: ${delivery.info}]`.trim() }).eq("id", order.id);
+        }
         await sendApprovedMessageToBuyer(bu.telegram_id, order);
         await postOrderToChannel(order, bu.full_name || (bu.username ? "@" + bu.username : ""));
       } else {
@@ -644,6 +648,7 @@ async function adminApproveOrder(chatId: number, orderId: string, approve: boole
       }
     }
   } else if (approve) {
+    await deliverViaFragment(order).catch(() => ({ ok: false, info: "" }));
     await postOrderToChannel(order, order.contact_full_name || "");
   }
 }
