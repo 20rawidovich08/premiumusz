@@ -255,6 +255,90 @@ const AdminSettings = () => {
         ))}
       </div>
 
+      {/* Fragment API + Kanal post shabloni */}
+      <div className="mt-6 rounded-2xl glass p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold">Fragment API (avtomatik yetkazib berish)</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              fragment-api.uz orqali Stars/Premium avtomatik jo'natiladi. Buyurtma admin tomonidan tasdiqlanganda ishga tushadi.
+            </p>
+          </div>
+          <Switch
+            checked={s.fragment_enabled === true}
+            onCheckedChange={(v) => { setField("fragment_enabled", v); save("fragment_enabled", v); }}
+          />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Label>API URL</Label>
+            <Input
+              placeholder="https://fragment-api.uz"
+              value={typeof s.fragment_api_url === "string" ? s.fragment_api_url : ""}
+              onChange={(e) => setField("fragment_api_url", e.target.value)}
+              onBlur={(e) => save("fragment_api_url", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>API Key (Bearer)</Label>
+            <Input
+              type="password"
+              placeholder="••••••••••••"
+              value={typeof s.fragment_api_key === "string" ? s.fragment_api_key : ""}
+              onChange={(e) => setField("fragment_api_key", e.target.value)}
+              onBlur={(e) => save("fragment_api_key", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Stars endpoint</Label>
+            <Input
+              placeholder="/api/v1/order/stars"
+              value={typeof s.fragment_stars_endpoint === "string" ? s.fragment_stars_endpoint : ""}
+              onChange={(e) => setField("fragment_stars_endpoint", e.target.value)}
+              onBlur={(e) => save("fragment_stars_endpoint", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Premium endpoint</Label>
+            <Input
+              placeholder="/api/v1/order/premium"
+              value={typeof s.fragment_premium_endpoint === "string" ? s.fragment_premium_endpoint : ""}
+              onChange={(e) => setField("fragment_premium_endpoint", e.target.value)}
+              onBlur={(e) => save("fragment_premium_endpoint", e.target.value)}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          So'rov: <code>POST {"{API URL}{endpoint}"}</code> · Header: <code>Authorization: Bearer {"{API Key}"}</code> · Body: <code>{"{ username, quantity | months }"}</code>.
+          Xatolik bo'lsa buyurtmaning <em>admin_note</em> maydoniga yoziladi.
+        </p>
+      </div>
+
+      <div className="mt-6 rounded-2xl glass p-5 space-y-3">
+        <div>
+          <h3 className="font-semibold">Kanal post shabloni</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Tasdiqlangan har bir xarid kanalga shu shablon bo'yicha post qilinadi. HTML taglar (b, code, i) ishlaydi.
+          </p>
+        </div>
+        <Textarea
+          rows={10}
+          className="font-mono text-sm"
+          value={typeof s.channel_post_template === "string" && s.channel_post_template ? s.channel_post_template : DEFAULT_CHANNEL_TEMPLATE}
+          onChange={(e) => setField("channel_post_template", e.target.value)}
+          onBlur={(e) => save("channel_post_template", e.target.value)}
+        />
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div>Mavjud o'zgaruvchilar:</div>
+          <div className="font-mono break-all">
+            {"{product_kind} {order_number} {buyer} {product_line} {stars} {duration_months} {amount} {payment_method} {key} {bot_username} {product_type}"}
+          </div>
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => { setField("channel_post_template", DEFAULT_CHANNEL_TEMPLATE); save("channel_post_template", DEFAULT_CHANNEL_TEMPLATE); }}>
+            Standartga qaytarish
+          </Button>
+        </div>
+      </div>
+
       <div className="mt-6 rounded-2xl glass p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-semibold">{t("botWebhook")}</h3>
