@@ -4,9 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CheckCircle2, RefreshCw, XCircle, Plus, Trash2 } from "lucide-react";
 import { useAdminT } from "@/lib/adminI18n";
+
+const DEFAULT_CHANNEL_TEMPLATE =
+  `📥 Yangi {product_kind} Xarid <code>{order_number}</code>\n\n` +
+  `👤 Mijoz: <b>{buyer}</b>\n` +
+  `{product_line}\n` +
+  `💸 Paid: <b>{amount} UZS</b> ({payment_method})\n` +
+  `🆔 Key: <code>{key}</code>\n\n` +
+  `@{bot_username}`;
 
 type CardItem = { number: string; holder: string; bank: string };
 
