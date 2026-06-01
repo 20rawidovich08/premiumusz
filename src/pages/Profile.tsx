@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Seo } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,9 +74,11 @@ const Profile = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo title="Mening profilim — Premium UZ" description="Balansingiz, buyurtmalar tarixi va shaxsiy ma'lumotlaringizni boshqaring." path="/profile" />
       <SiteHeader />
       <main className="flex-1 container py-12">
         <div className="mx-auto max-w-5xl space-y-8">
+          <h1 className="font-display text-3xl font-bold md:text-4xl">Mening profilim</h1>
           <div className="grid gap-6 md:grid-cols-3">
             {/* Balance card */}
             <div className="rounded-3xl glass p-6 md:col-span-1">

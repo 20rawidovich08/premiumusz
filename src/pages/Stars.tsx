@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Seo } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,6 +106,11 @@ const Stars = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo
+        title="Telegram Stars xarid qilish — Premium UZ"
+        description="Telegram Stars'ni 50 dan boshlab UZS karta orqali xarid qiling. Tez yetkazib berish va arzon kurs."
+        path="/stars"
+      />
       <SiteHeader />
       <main className="flex-1 container py-16">
         <div className="text-center mx-auto max-w-2xl">

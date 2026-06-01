@@ -87,7 +87,7 @@ export const SiteHeader = () => {
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full">
+                  <Button variant="outline" size="icon" className="rounded-full" aria-label="Foydalanuvchi menyusi">
                     <UserIcon className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -119,7 +119,7 @@ export const SiteHeader = () => {
           {/* mobile nav */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden">
+              <Button variant="outline" size="icon" className="md:hidden" aria-label="Asosiy menyu">
                 <Menu className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

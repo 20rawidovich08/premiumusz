@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Seo } from "@/lib/seo";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Search } from "lucide-react";
 
 const statusColor: Record<string, string> = {
@@ -41,15 +43,23 @@ const Track = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo
+        title="Buyurtmani kuzatish — Premium UZ"
+        description="Buyurtma raqami bo'yicha Telegram Premium yoki Stars buyurtmangiz holatini tekshiring."
+        path="/track"
+      />
       <SiteHeader />
       <main className="flex-1 container py-16">
         <div className="mx-auto max-w-xl">
           <h1 className="font-display text-3xl font-bold md:text-4xl">{t("track.title")}</h1>
           <div className="mt-6 flex gap-2">
+            <Label htmlFor="track-input" className="sr-only">{t("track.placeholder")}</Label>
             <Input
+              id="track-input"
               value={num}
               onChange={(e) => setNum(e.target.value)}
               placeholder={t("track.placeholder")}
+              aria-label={t("track.placeholder")}
               className="h-12 rounded-xl font-mono"
               onKeyDown={(e) => e.key === "Enter" && lookup(num)}
             />
