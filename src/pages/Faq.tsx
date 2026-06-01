@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Seo } from "@/lib/seo";
 import { useI18n } from "@/lib/i18n";
 import { HelpCircle } from "lucide-react";
 
@@ -17,8 +18,23 @@ const FAQS_UZ = [
 
 const Faq = () => {
   const { t } = useI18n();
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQS_UZ.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo
+        title="Tez-tez so'raladigan savollar — Premium UZ"
+        description="Telegram Premium va Stars xaridi, to'lov, yetkazib berish va boshqa savollarga javoblar."
+        path="/faq"
+        jsonLd={faqJsonLd}
+      />
       <SiteHeader />
       <main className="flex-1 container py-12">
         <div className="mx-auto max-w-3xl">

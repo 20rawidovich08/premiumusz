@@ -1,0 +1,21 @@
+# Premium UZ
+
+> Telegram Premium obuna va Telegram Stars'ni O'zbekistondan xavfsiz, tez va arzon xarid qilish xizmati.
+
+Premium UZ — O'zbekistonda Telegram Premium (3, 6, 12 oy) va Telegram Stars sotib olishga ixtisoslashgan platforma. To'lovlar UZS'da bank kartalari orqali qabul qilinadi, buyurtmalar 5–30 daqiqada bajariladi.
+
+## Pages
+
+- [Bosh sahifa](/): Xizmat haqida umumiy ma'lumot va asosiy taklif.
+- [Tariflar](/pricing): Telegram Premium 3/6/12 oylik obuna narxlari.
+- [Stars](/stars): Telegram Stars paketlari va narx kalkulyatori.
+- [Premium xarid qilish](/buy/premium): Premium obunani rasmiylashtirish.
+- [Buyurtmani kuzatish](/track): Buyurtma raqami bo'yicha holatni tekshirish.
+- [Tez-tez so'raladigan savollar](/faq): Premium, Stars, to'lov va yetkazib berish haqida javoblar.
+- [Blog](/blog): Telegram Premium va Stars haqida maqolalar va yangiliklar.
+- [Foydalanish shartlari](/terms): Xizmatdan foydalanish qoidalari.
+- [Maxfiylik siyosati](/privacy): Foydalanuvchi ma'lumotlari bilan ishlash siyosati.
+
+## Optional
+
+- [Kirish / Ro'yxatdan o'tish](/auth): Hisob yaratish yoki kirish sahifasi.
