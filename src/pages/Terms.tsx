@@ -1,8 +1,14 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Seo } from "@/lib/seo";
 
 const Terms = () => (
   <div className="flex min-h-screen flex-col">
+    <Seo
+      title="Foydalanish shartlari — Premium UZ"
+      description="Premium UZ saytidan foydalanish qoidalari, to'lov, yetkazib berish va pulni qaytarish shartlari."
+      path="/terms"
+    />
     <SiteHeader />
     <main className="flex-1 container py-12">
       <div className="mx-auto max-w-3xl rounded-3xl glass p-8 prose prose-invert prose-headings:font-display">

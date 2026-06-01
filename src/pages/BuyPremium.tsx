@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Seo } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,6 +91,11 @@ const BuyPremium = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo
+        title="Telegram Premium xarid qilish — Premium UZ"
+        description="3, 6 yoki 12 oylik Telegram Premium obunani rasmiylashtiring. To'lov karta orqali, faollashish 5–30 daqiqada."
+        path="/buy/premium"
+      />
       <SiteHeader />
       <main className="flex-1 container py-12">
         <div className="mx-auto max-w-2xl">
