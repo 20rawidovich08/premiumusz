@@ -2,6 +2,7 @@ import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PricingCards } from "@/components/PricingCards";
+import { Seo } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, Bot, ShieldCheck, Zap, Star, Wallet } from "lucide-react";
@@ -10,6 +11,11 @@ const Index = () => {
   const { t } = useI18n();
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo
+        title="Premium Usz — Telegram Premium va Stars xarid qilish"
+        description="O'zbekistonda Telegram Premium obuna (3, 6, 12 oy) va Telegram Stars'ni karta orqali tez va xavfsiz xarid qiling. 5–30 daqiqada faollashadi."
+        path="/"
+      />
       <SiteHeader />
       <main className="flex-1">
         {/* Hero */}
