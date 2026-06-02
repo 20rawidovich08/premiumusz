@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CheckCircle2, RefreshCw, XCircle, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, RefreshCw, XCircle, Plus, Trash2, Wallet } from "lucide-react";
 import { useAdminT } from "@/lib/adminI18n";
 
 const DEFAULT_CHANNEL_TEMPLATE =
