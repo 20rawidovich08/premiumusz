@@ -25,6 +25,16 @@ const AdminSettings = () => {
   const [cards, setCards] = useState<CardItem[]>([]);
   const [webhook, setWebhook] = useState<any>(null);
   const [webhookBusy, setWebhookBusy] = useState(false);
+  const [fragment, setFragment] = useState<any>(null);
+  const [fragmentBusy, setFragmentBusy] = useState(false);
+
+  const checkFragment = async () => {
+    setFragmentBusy(true);
+    const { data, error } = await supabase.functions.invoke("fragment-status");
+    setFragmentBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setFragment(data);
+  };
 
   const load = async () => {
     const { data } = await supabase.from("settings").select("key,value");
