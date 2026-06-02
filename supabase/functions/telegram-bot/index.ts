@@ -247,38 +247,45 @@ async function postOrderToChannel(order: any, buyerName: string) {
   await tg("sendMessage", { chat_id: channel, text, parse_mode: "HTML", disable_web_page_preview: true }).catch(() => {});
 }
 
-// ============ Fragment API auto-delivery ============
+// ============ Fragment-API.uz auto-delivery ============
+// Docs: https://fragment-api.uz/api  Base: https://fragment-api.uz/api/v1
+// Header: X-API-Key  Body: {amount,username} for stars, {duration,username} for premium
+const FRAGMENT_ENV_KEY = Deno.env.get("FRAGMENT_API_KEY") || "";
+
 async function deliverViaFragment(order: any): Promise<{ ok: boolean; info: string }> {
   const enabled = await getSetting("fragment_enabled", false);
   if (!enabled) return { ok: false, info: "disabled" };
-  const apiKey = String(await getSetting("fragment_api_key", "") || "");
-  const baseUrl = String(await getSetting("fragment_api_url", "https://fragment-api.uz") || "https://fragment-api.uz").replace(/\/+$/, "");
+  const apiKey = String((await getSetting("fragment_api_key", "")) || FRAGMENT_ENV_KEY || "");
+  const baseUrl = String(await getSetting("fragment_api_url", "https://fragment-api.uz/api/v1") || "https://fragment-api.uz/api/v1").replace(/\/+$/, "");
   if (!apiKey) return { ok: false, info: "no_api_key" };
 
   const target = String(order.telegram_target || order.contact_telegram || "").replace(/^@/, "").trim();
   if (!target) return { ok: false, info: "no_target" };
 
   const isStars = order.product_type === "stars";
-  const endpoint = isStars
-    ? String(await getSetting("fragment_stars_endpoint", "/api/v1/order/stars"))
-    : String(await getSetting("fragment_premium_endpoint", "/api/v1/order/premium"));
-
+  const path = isStars ? "/stars/buy" : "/premium/buy";
   const payload: Record<string, any> = { username: target };
-  if (isStars) payload.quantity = Number(order.stars_amount || 0);
-  else payload.months = Number(order.duration_months || 0);
+  if (isStars) payload.amount = Number(order.stars_amount || 0);
+  else payload.duration = Number(order.duration_months || 0);
 
   try {
-    const res = await fetch(`${baseUrl}${endpoint}`, {
+    const res = await fetch(`${baseUrl}${path}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        "X-API-Key": apiKey,
       },
       body: JSON.stringify(payload),
     });
     const txt = await res.text();
-    if (!res.ok) return { ok: false, info: `HTTP ${res.status}: ${txt.slice(0, 200)}` };
-    return { ok: true, info: txt.slice(0, 200) };
+    let json: any = null;
+    try { json = JSON.parse(txt); } catch { /* keep raw */ }
+    if (!res.ok || (json && json.ok === false)) {
+      const msg = json?.message || json?.code || txt.slice(0, 200);
+      return { ok: false, info: `Fragment: ${msg}` };
+    }
+    const cost = json?.result?.cost ? ` cost=${json.result.cost} ${json.result.payment_method || ""}` : "";
+    return { ok: true, info: `Fragment OK${cost}` };
   } catch (e: any) {
     return { ok: false, info: e?.message || "fetch_error" };
   }

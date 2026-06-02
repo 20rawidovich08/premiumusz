@@ -86,39 +86,43 @@ Deno.serve(async (req) => {
       }
 
       if (approved) {
-        // Fragment API auto-delivery
+        // Fragment-API.uz auto-delivery (X-API-Key, /stars/buy or /premium/buy)
         try {
           const { data: rows } = await admin.from("settings").select("key,value").in("key", [
             "fragment_enabled", "fragment_api_key", "fragment_api_url",
-            "fragment_stars_endpoint", "fragment_premium_endpoint",
           ]);
           const cfg: Record<string, any> = {};
           (rows ?? []).forEach((r: any) => { cfg[r.key] = r.value; });
-          if (cfg.fragment_enabled && cfg.fragment_api_key) {
-            const baseUrl = String(cfg.fragment_api_url || "https://fragment-api.uz").replace(/\/+$/, "");
+          const envKey = Deno.env.get("FRAGMENT_API_KEY") || "";
+          const apiKey = String(cfg.fragment_api_key || envKey || "");
+          if (cfg.fragment_enabled && apiKey) {
+            const baseUrl = String(cfg.fragment_api_url || "https://fragment-api.uz/api/v1").replace(/\/+$/, "");
             const target = String(order.telegram_target || order.contact_telegram || "").replace(/^@/, "").trim();
             const isStars = order.product_type === "stars";
-            const endpoint = isStars
-              ? String(cfg.fragment_stars_endpoint || "/api/v1/order/stars")
-              : String(cfg.fragment_premium_endpoint || "/api/v1/order/premium");
+            const path = isStars ? "/stars/buy" : "/premium/buy";
             const payload: Record<string, any> = { username: target };
-            if (isStars) payload.quantity = Number(order.stars_amount || 0);
-            else payload.months = Number(order.duration_months || 0);
+            if (isStars) payload.amount = Number(order.stars_amount || 0);
+            else payload.duration = Number(order.duration_months || 0);
             if (target) {
-              const fr = await fetch(`${baseUrl}${endpoint}`, {
+              const fr = await fetch(`${baseUrl}${path}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.fragment_api_key}` },
+                headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
                 body: JSON.stringify(payload),
               });
-              if (!fr.ok) {
-                const t = await fr.text();
-                await admin.from("orders").update({
-                  admin_note: `${order.admin_note || ""} [Fragment: HTTP ${fr.status} ${t.slice(0, 160)}]`.trim(),
-                }).eq("id", order.id);
-              }
+              const txt = await fr.text();
+              let json: any = null;
+              try { json = JSON.parse(txt); } catch { /* raw */ }
+              const ok = fr.ok && (!json || json.ok !== false);
+              const tag = ok
+                ? `[Fragment ✓ ${json?.result?.cost || ""} ${json?.result?.payment_method || ""}]`.trim()
+                : `[Fragment ✗ ${json?.message || json?.code || txt.slice(0, 160)}]`;
+              await admin.from("orders").update({
+                admin_note: `${order.admin_note || ""} ${tag}`.trim(),
+              }).eq("id", order.id);
             }
           }
         } catch (e) { console.error("fragment delivery error", e); }
+
 
         // Post to public channel if configured
         const { data: chRow } = await admin.from("settings").select("value").eq("key", "post_channel_id").maybeSingle();

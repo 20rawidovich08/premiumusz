@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CheckCircle2, RefreshCw, XCircle, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, RefreshCw, XCircle, Plus, Trash2, Wallet } from "lucide-react";
 import { useAdminT } from "@/lib/adminI18n";
 
 const DEFAULT_CHANNEL_TEMPLATE =
@@ -25,6 +25,16 @@ const AdminSettings = () => {
   const [cards, setCards] = useState<CardItem[]>([]);
   const [webhook, setWebhook] = useState<any>(null);
   const [webhookBusy, setWebhookBusy] = useState(false);
+  const [fragment, setFragment] = useState<any>(null);
+  const [fragmentBusy, setFragmentBusy] = useState(false);
+
+  const checkFragment = async () => {
+    setFragmentBusy(true);
+    const { data, error } = await supabase.functions.invoke("fragment-status");
+    setFragmentBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setFragment(data);
+  };
 
   const load = async () => {
     const { data } = await supabase.from("settings").select("key,value");
@@ -271,48 +281,83 @@ const AdminSettings = () => {
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <Label>API URL</Label>
+            <Label>API Base URL</Label>
             <Input
-              placeholder="https://fragment-api.uz"
+              placeholder="https://fragment-api.uz/api/v1"
               value={typeof s.fragment_api_url === "string" ? s.fragment_api_url : ""}
               onChange={(e) => setField("fragment_api_url", e.target.value)}
               onBlur={(e) => save("fragment_api_url", e.target.value)}
             />
           </div>
           <div>
-            <Label>API Key (Bearer)</Label>
+            <Label>API Key (X-API-Key)</Label>
             <Input
               type="password"
-              placeholder="••••••••••••"
+              placeholder="loyiha kaliti yoki bo'sh qoldiring (FRAGMENT_API_KEY secret ishlatiladi)"
               value={typeof s.fragment_api_key === "string" ? s.fragment_api_key : ""}
               onChange={(e) => setField("fragment_api_key", e.target.value)}
               onBlur={(e) => save("fragment_api_key", e.target.value)}
             />
           </div>
-          <div>
-            <Label>Stars endpoint</Label>
-            <Input
-              placeholder="/api/v1/order/stars"
-              value={typeof s.fragment_stars_endpoint === "string" ? s.fragment_stars_endpoint : ""}
-              onChange={(e) => setField("fragment_stars_endpoint", e.target.value)}
-              onBlur={(e) => save("fragment_stars_endpoint", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>Premium endpoint</Label>
-            <Input
-              placeholder="/api/v1/order/premium"
-              value={typeof s.fragment_premium_endpoint === "string" ? s.fragment_premium_endpoint : ""}
-              onChange={(e) => setField("fragment_premium_endpoint", e.target.value)}
-              onBlur={(e) => save("fragment_premium_endpoint", e.target.value)}
-            />
-          </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          So'rov: <code>POST {"{API URL}{endpoint}"}</code> · Header: <code>Authorization: Bearer {"{API Key}"}</code> · Body: <code>{"{ username, quantity | months }"}</code>.
-          Xatolik bo'lsa buyurtmaning <em>admin_note</em> maydoniga yoziladi.
+          Endpointlar: <code>POST /stars/buy</code> ({"{amount, username}"}) va <code>POST /premium/buy</code> ({"{duration, username}"}).
+          Header: <code>X-API-Key</code>. Tasdiqlash bosilganda avtomatik jo'natiladi; balans yetmasa yoki xato bo'lsa buyurtmaning <em>admin_note</em> ga yoziladi.
         </p>
+
+        {/* Wallet balance panel */}
+        <div className="mt-2 rounded-xl border border-border/60 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-primary" />
+              <span className="font-medium">TON Keeper hamyon balansi</span>
+            </div>
+            <Button size="sm" variant="outline" disabled={fragmentBusy} onClick={checkFragment}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${fragmentBusy ? "animate-spin" : ""}`} />
+              Tekshirish
+            </Button>
+          </div>
+          {fragment?.ok && fragment.balance && (
+            <div className="grid gap-2 sm:grid-cols-2 text-sm">
+              <div className="rounded-lg bg-secondary/40 p-3">
+                <div className="text-xs text-muted-foreground">Loyiha</div>
+                <div className="font-semibold">{fragment.balance.project || "—"}</div>
+              </div>
+              <div className="rounded-lg bg-secondary/40 p-3">
+                <div className="text-xs text-muted-foreground">Tarmoq</div>
+                <div className="font-semibold">{fragment.balance.network || "—"} · {fragment.balance.wallet_version || ""}</div>
+              </div>
+              <div className="rounded-lg bg-primary/10 p-3">
+                <div className="text-xs text-muted-foreground">TON balansi</div>
+                <div className="font-display text-xl font-bold text-gradient">{fragment.balance.balance_ton} TON</div>
+              </div>
+              <div className="rounded-lg bg-primary/10 p-3">
+                <div className="text-xs text-muted-foreground">USDT balansi</div>
+                <div className="font-display text-xl font-bold text-gradient">{fragment.balance.balance_usdt} USDT</div>
+              </div>
+              {fragment.capacity?.stars && (
+                <div className="rounded-lg bg-warning/10 p-3 sm:col-span-2">
+                  <div className="text-xs text-muted-foreground">Hozirgi balans bilan jo'natish mumkin</div>
+                  <div className="font-semibold">⭐ Maks. {fragment.capacity.stars.max_amount} Stars</div>
+                </div>
+              )}
+              {fragment.balance.address && (
+                <div className="rounded-lg bg-secondary/40 p-3 sm:col-span-2">
+                  <div className="text-xs text-muted-foreground">Hamyon manzili</div>
+                  <code className="text-xs break-all">{fragment.balance.address}</code>
+                </div>
+              )}
+            </div>
+          )}
+          {fragment && !fragment.ok && (
+            <p className="text-sm text-destructive">{fragment.error || "Balansni olib bo'lmadi"}</p>
+          )}
+          {!fragment && (
+            <p className="text-xs text-muted-foreground">Tugmani bosing — fragment-api.uz dan joriy TON/USDT balansingiz olinadi.</p>
+          )}
+        </div>
       </div>
+
 
       <div className="mt-6 rounded-2xl glass p-5 space-y-3">
         <div>
