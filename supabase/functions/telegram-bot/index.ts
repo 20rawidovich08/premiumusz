@@ -1247,7 +1247,7 @@ Deno.serve(async (req) => {
       if (!amount || amount < min) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `❌ Summa noto'g'ri yoki minimumdan kam (${fmt(min)} UZS).\nQayta kiriting:`,
+          text: tr(user.language, "bad_amount", { min: fmt(min) }),
           reply_markup: cancelKeyboard(user.language),
         });
         return new Response("ok");
@@ -1258,13 +1258,7 @@ Deno.serve(async (req) => {
       const cardBank = await getSetting("card_bank", "");
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          `💳 <b>To'lov ma'lumotlari</b>\n\n` +
-          `Karta: <code>${cardNum}</code>\n` +
-          `Egasi: <b>${cardHolder}</b>\n` +
-          (cardBank ? `Bank: ${cardBank}\n` : "") +
-          `\n💵 Summa: <b>${fmt(amount)} UZS</b>\n\n` +
-          `To'lovni amalga oshirgach <b>chek rasmini yuboring</b> 📸`,
+        text: tr(user.language, "topup_pay_info", { c: cardNum, h: cardHolder, b: cardBank ? `Bank: ${cardBank}` : "", a: fmt(amount) }),
         parse_mode: "HTML",
         reply_markup: cancelKeyboard(user.language),
       });
@@ -1275,7 +1269,7 @@ Deno.serve(async (req) => {
       if (!msg.photo) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: "❌ Iltimos chek <b>rasm</b>ini yuboring (matn emas).",
+          text: tr(user.language, "need_photo"),
           parse_mode: "HTML",
           reply_markup: cancelKeyboard(user.language),
         });
@@ -1292,8 +1286,6 @@ Deno.serve(async (req) => {
         receiptPath = `bot-topup-${user.id}-${Date.now()}.${ext}`;
         await supabase.storage.from("receipts").upload(receiptPath, bytes, { contentType: "image/jpeg", upsert: false });
       }
-      // Bot top-ups bypass profiles RLS — store as bot transaction (use service role).
-      // Store linked to bot_user via admin_note for traceability; balance sits on bot_users.
       const { data: tx } = await supabase.from("balance_transactions").insert({
         user_id: null,
         bot_user_id: user.id,
@@ -1306,11 +1298,7 @@ Deno.serve(async (req) => {
       await clearWizard(user.id);
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          `✅ Chek qabul qilindi!\n\n` +
-          `Summa: <b>${fmt(step.amount)} UZS</b>\n\n` +
-          `⏳ <b>Iltimos admin tasdiqlashini kuting!</b>\n` +
-          `30 daqiqadan 24 soat ichida to'lovingiz tasdiqlanadi.`,
+        text: tr(user.language, "receipt_ok", { a: fmt(step.amount) }),
         parse_mode: "HTML",
         reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language),
       });
@@ -1321,12 +1309,12 @@ Deno.serve(async (req) => {
     if (step?.kind === "edit_phone") {
       const phone = text.trim();
       if (phone.length < 7) {
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Telefon raqami noto'g'ri. Qayta yuboring:" });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "phone_bad") });
         return new Response("ok");
       }
       await supabase.from("bot_users").update({ phone }).eq("id", user.id);
       await clearWizard(user.id);
-      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon yangilandi!", reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language) });
+      await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "phone_saved"), reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language) });
       return new Response("ok");
     }
 
