@@ -1006,19 +1006,16 @@ Deno.serve(async (req) => {
         if (Number(user.balance) < Number(plan.price_uzs)) {
           await tg("sendMessage", {
             chat_id: chatId,
-            text: `❌ Balansda yetarli mablag' yo'q.\n\nKerak: <b>${fmt(plan.price_uzs)} UZS</b>\nSizda: <b>${fmt(user.balance)} UZS</b>`,
+            text: tr(user.language, "no_balance", { need: fmt(plan.price_uzs), have: fmt(user.balance) }),
             parse_mode: "HTML",
-            reply_markup: { inline_keyboard: [[{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }]] },
+            reply_markup: { inline_keyboard: [[{ text: tr(user.language, "topup_btn"), callback_data: "menu:topup" }]] },
           });
           return new Response("ok");
         }
         await setWizard(user.id, { kind: "premium_target", planId });
         await tg("sendMessage", {
           chat_id: chatId,
-          text:
-            `👑 <b>Premium ${plan.duration_months} oy</b> — ${fmt(plan.price_uzs)} UZS\n\n` +
-            `Premium qaysi akkauntga kerak? Telegram username yuboring (masalan @username).\n\n` +
-            `O'zingizga olishni xohlasangiz @${user.username || "username"} yuboring.`,
+          text: tr(user.language, "ask_premium_target", { m: plan.duration_months, p: fmt(plan.price_uzs), me: user.username || "username" }),
           parse_mode: "HTML",
           reply_markup: cancelKeyboard(user.language),
         });
@@ -1032,12 +1029,7 @@ Deno.serve(async (req) => {
         await setWizard(user.id, { kind: "stars_amount" });
         await tg("sendMessage", {
           chat_id: chatId,
-          text:
-            `⭐ <b>Stars miqdorini kiriting</b>\n\n` +
-            `Minimum: <b>${min}</b> ⭐\n` +
-            `Kurs: <b>1 ⭐ = ${fmt(rate)} UZS</b>\n` +
-            `Sizdagi balans: <b>${fmt(user.balance)} UZS</b>\n\n` +
-            `Faqat son yuboring (masalan: 120):`,
+          text: tr(user.language, "ask_stars_amount", { min, rate: fmt(rate), bal: fmt(user.balance) }),
           parse_mode: "HTML",
           reply_markup: cancelKeyboard(user.language),
         });
@@ -1052,18 +1044,16 @@ Deno.serve(async (req) => {
         if (Number(user.balance) < price) {
           await tg("sendMessage", {
             chat_id: chatId,
-            text: `❌ Balansda yetarli mablag' yo'q.\n\nKerak: <b>${fmt(price)} UZS</b>\nSizda: <b>${fmt(user.balance)} UZS</b>`,
+            text: tr(user.language, "no_balance", { need: fmt(price), have: fmt(user.balance) }),
             parse_mode: "HTML",
-            reply_markup: { inline_keyboard: [[{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }]] },
+            reply_markup: { inline_keyboard: [[{ text: tr(user.language, "topup_btn"), callback_data: "menu:topup" }]] },
           });
           return new Response("ok");
         }
         await setWizard(user.id, { kind: "stars_target", stars });
         await tg("sendMessage", {
           chat_id: chatId,
-          text:
-            `⭐ <b>${stars} Stars</b> — ${fmt(price)} UZS\n\n` +
-            `Stars qaysi akkauntga kerak? Telegram username yuboring (@username).`,
+          text: tr(user.language, "ask_stars_target", { s: stars, p: fmt(price) }),
           parse_mode: "HTML",
           reply_markup: cancelKeyboard(user.language),
         });
@@ -1074,8 +1064,8 @@ Deno.serve(async (req) => {
         await setWizard(user.id, { kind: "edit_phone" });
         await tg("sendMessage", {
           chat_id: chatId,
-          text: "📱 Yangi telefon raqamingizni yuboring:",
-          reply_markup: shareContactKeyboard(),
+          text: tr(user.language, "enter_phone"),
+          reply_markup: shareContactKeyboard(user.language),
         });
         return new Response("ok");
       }
