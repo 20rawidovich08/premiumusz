@@ -1081,7 +1081,7 @@ Deno.serve(async (req) => {
 
     const user = await getOrCreateUser(from, msg.text?.startsWith("/start ") ? msg.text.split(" ")[1] : undefined);
     if (user.banned) {
-      await tg("sendMessage", { chat_id: chatId, text: "Sizning hisobingiz bloklangan." });
+      await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "banned") });
       return new Response("ok");
     }
 
