@@ -1008,8 +1008,12 @@ Deno.serve(async (req) => {
     const text: string = msg.text || "";
 
     // Cancel always wins
-    if (text === "❌ Bekor qilish") {
+    if (text === "❌ Bekor qilish" || text === "/cancel") {
       await clearWizard(user.id);
+      await showHome(chatId, user);
+      return new Response("ok");
+    }
+    if (text === "/menu") {
       await showHome(chatId, user);
       return new Response("ok");
     }
