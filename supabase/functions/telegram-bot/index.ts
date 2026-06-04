@@ -1446,11 +1446,9 @@ Deno.serve(async (req) => {
       if (!user.phone) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text:
-            `👋 <b>Assalomu alaykum, ${user.full_name || from.first_name || "do'stim"}!</b>\n\nTelegram Premium va Stars do'koniga xush kelibsiz.\n\n` +
-            "Boshlash uchun telefon raqamingizni yuboring 👇",
+          text: tr(user.language, "start_intro", { name: user.full_name || from.first_name || "" }),
           parse_mode: "HTML",
-          reply_markup: shareContactKeyboard(),
+          reply_markup: shareContactKeyboard(user.language),
         });
       } else {
         await showHome(chatId, user);
