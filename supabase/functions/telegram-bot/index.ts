@@ -921,18 +921,6 @@ Deno.serve(async (req) => {
         });
         return new Response("ok");
       }
-        await setWizard(user.id, { kind: "premium_target", planId });
-        await tg("sendMessage", {
-          chat_id: chatId,
-          text:
-            `👑 <b>Premium ${plan.duration_months} oy</b> — ${fmt(plan.price_uzs)} UZS\n\n` +
-            `Premium qaysi akkauntga kerak? Telegram username yuboring (masalan @username).\n\n` +
-            `O'zingizga olishni xohlasangiz @${user.username || "username"} yuboring.`,
-          parse_mode: "HTML",
-          reply_markup: cancelKeyboard(),
-        });
-        return new Response("ok");
-      }
 
       // Custom stars amount
       if (data === "stars:custom") {
