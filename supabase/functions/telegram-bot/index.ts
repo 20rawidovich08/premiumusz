@@ -419,37 +419,38 @@ function getWizard(user: any): Step | null {
 // ============ Helpers ============
 async function showHome(chatId: number, user: any) {
   const adminFlag = await isBotAdmin(user.telegram_id);
-  // Remove any legacy reply keyboard so the UI is fully inline.
+  const lang = L(user.language);
   await tg("sendMessage", {
     chat_id: chatId,
-    text: `👋 Xush kelibsiz, <b>${user.full_name || "do'stim"}</b>!\n\nBalans: <b>${fmt(user.balance)} UZS</b>\n\nQuyidagi menyudan tanlang 👇`,
+    text: tr(lang, "welcome", { name: user.full_name || "", bal: fmt(user.balance) }),
     parse_mode: "HTML",
     reply_markup: { remove_keyboard: true },
   });
   await tg("sendMessage", {
     chat_id: chatId,
-    text: "Asosiy menyu:",
-    reply_markup: mainMenu(adminFlag),
+    text: tr(lang, "main_menu"),
+    reply_markup: mainMenu(adminFlag, lang),
   });
 }
 
-async function showPrices(chatId: number) {
+async function showPrices(chatId: number, user: any) {
+  const lang = L(user?.language);
   const { data: plans } = await supabase.from("plans").select("*").eq("active", true).order("duration_months");
   const { data: pkgs } = await supabase.from("stars_packages").select("*").eq("active", true).order("stars");
   const rate = Number(await getSetting("stars_rate_uzs", 220));
-  const premiumLines = (plans ?? []).map((p: any) => `• ${p.duration_months} oy — <b>${fmt(p.price_uzs)} UZS</b>`).join("\n") || "—";
+  const premiumLines = (plans ?? []).map((p: any) => `• ${p.duration_months} — <b>${fmt(p.price_uzs)} UZS</b>`).join("\n") || "—";
   const starsLines = (pkgs ?? []).map((p: any) => `• ⭐ ${p.stars} — <b>${fmt(p.stars * rate)} UZS</b>`).join("\n") || "—";
   await tg("sendMessage", {
     chat_id: chatId,
     parse_mode: "HTML",
     text:
-      `💱 <b>Narxlar</b>\n\n` +
-      `👑 <b>Premium</b>\n${premiumLines}\n\n` +
-      `⭐ <b>Stars</b> (1⭐ = ${fmt(rate)} UZS)\n${starsLines}`,
+      `${tr(lang, "prices_title")}\n\n` +
+      `${tr(lang, "btn_premium")}\n${premiumLines}\n\n` +
+      `${tr(lang, "btn_stars")} (1⭐ = ${fmt(rate)} UZS)\n${starsLines}`,
     reply_markup: {
       inline_keyboard: [
-        [{ text: "👑 Premium sotib olish", callback_data: "menu:premium" }, { text: "⭐ Stars", callback_data: "menu:stars" }],
-        [{ text: "⬅️ Bosh menyu", callback_data: "menu:home" }],
+        [{ text: tr(lang, "btn_premium"), callback_data: "menu:premium" }, { text: tr(lang, "btn_stars"), callback_data: "menu:stars" }],
+        [{ text: tr(lang, "btn_back"), callback_data: "menu:home" }],
       ],
     },
   });
@@ -457,26 +458,48 @@ async function showPrices(chatId: number) {
 
 
 async function showProfile(chatId: number, user: any) {
+  const lang = L(user.language);
   await tg("sendMessage", {
     chat_id: chatId,
     text:
-      `👤 <b>Profil</b>\n\n` +
-      `Ism: <b>${user.full_name || "-"}</b>\n` +
-      `Telefon: <b>${user.phone || "-"}</b>\n` +
+      `${tr(lang, "profile_title")}\n\n` +
+      `${tr(lang, "f_name")}: <b>${user.full_name || "-"}</b>\n` +
+      `${tr(lang, "f_phone")}: <b>${user.phone || "-"}</b>\n` +
       `Username: ${user.username ? "@" + user.username : "-"}\n` +
-      `Balans: <b>${fmt(user.balance)} UZS</b>\n` +
+      `${tr(lang, "f_balance")}: <b>${fmt(user.balance)} UZS</b>\n` +
+      `🌐 ${LANG_NAMES[lang]}\n` +
       `🆔 <code>${user.telegram_id}</code>`,
     parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [
-        [{ text: "✏️ Telefon o'zgartirish", callback_data: "profile:phone" }],
-        [{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }],
+        [{ text: tr(lang, "edit_phone_btn"), callback_data: "profile:phone" }],
+        [{ text: tr(lang, "btn_settings"), callback_data: "menu:settings" }],
+        [{ text: tr(lang, "topup_btn"), callback_data: "menu:topup" }],
+        [{ text: tr(lang, "btn_back"), callback_data: "menu:home" }],
+      ],
+    },
+  });
+}
+
+async function showSettings(chatId: number, user: any) {
+  const lang = L(user.language);
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: tr(lang, "settings_title", { cur: LANG_NAMES[lang] }),
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: LANG_NAMES.uz, callback_data: "lang:uz" }],
+        [{ text: LANG_NAMES.ru, callback_data: "lang:ru" }],
+        [{ text: LANG_NAMES.en, callback_data: "lang:en" }],
+        [{ text: tr(lang, "btn_back"), callback_data: "menu:home" }],
       ],
     },
   });
 }
 
 async function showOrders(chatId: number, user: any) {
+  const lang = L(user.language);
   const { data: orders } = await supabase
     .from("orders")
     .select("order_number,product_type,duration_months,stars_amount,amount_uzs,status,created_at")
@@ -484,24 +507,25 @@ async function showOrders(chatId: number, user: any) {
     .order("created_at", { ascending: false })
     .limit(10);
   if (!orders?.length) {
-    await tg("sendMessage", { chat_id: chatId, text: "Sizda hali buyurtmalar yo'q." });
+    await tg("sendMessage", { chat_id: chatId, text: tr(lang, "no_orders") });
     return;
   }
   const statusEmoji: Record<string, string> = {
     pending: "🕐", approved: "✅", rejected: "❌", paid: "💎",
   };
   const lines = orders.map((o: any) => {
-    const item = o.product_type === "stars" ? `⭐ ${o.stars_amount}` : `👑 ${o.duration_months}oy`;
+    const item = o.product_type === "stars" ? `⭐ ${o.stars_amount}` : `👑 ${o.duration_months}`;
     return `${statusEmoji[o.status] || "•"} <code>${o.order_number}</code> · ${item} · ${fmt(o.amount_uzs || 0)} UZS`;
   });
   await tg("sendMessage", {
     chat_id: chatId,
-    text: "📋 <b>So'nggi buyurtmalaringiz</b>\n\n" + lines.join("\n"),
+    text: `${tr(lang, "orders_title")}\n\n` + lines.join("\n"),
     parse_mode: "HTML",
   });
 }
 
 async function showReferral(chatId: number, user: any) {
+  const lang = L(user.language);
   const me = await tg("getMe", {});
   const username = me?.result?.username;
   const link = `https://t.me/${username}?start=${user.referral_code}`;
@@ -511,27 +535,24 @@ async function showReferral(chatId: number, user: any) {
   await tg("sendMessage", {
     chat_id: chatId,
     text:
-      `👥 <b>Referal dasturi</b>\n\n` +
-      `Har bir taklif uchun: <b>${fmt(Number(reward))} UZS</b>\n` +
-      `Sizning takliflaringiz: <b>${count ?? 0}</b>\n\n` +
-      `Sizning havolangiz:\n${link}`,
+      `${tr(lang, "ref_title")}\n\n` +
+      `${tr(lang, "ref_per")}: <b>${fmt(Number(reward))} UZS</b>\n` +
+      `${tr(lang, "ref_count")}: <b>${count ?? 0}</b>\n\n` +
+      `${tr(lang, "ref_link")}:\n${link}`,
     parse_mode: "HTML",
     disable_web_page_preview: true,
   });
 }
 
-async function showHelp(chatId: number) {
+async function showHelp(chatId: number, user: any) {
+  const lang = L(user?.language);
   const cardNum = await getSetting("card_number", "");
   await tg("sendMessage", {
     chat_id: chatId,
     text:
-      `ℹ️ <b>Yordam</b>\n\n` +
-      `👑 <b>Premium</b> — 3/6/12 oylik Telegram Premium\n` +
-      `⭐ <b>Stars</b> — minimum 50 dona\n` +
-      `💳 <b>Balansni to'ldirish</b> — karta orqali, chek yuborilgach admin tasdiqlaydi\n` +
-      `👥 <b>Referal</b> — do'stlaringizni taklif qilib bonus oling\n\n` +
-      (cardNum ? `Karta: <code>${cardNum}</code>\n\n` : "") +
-      `Savollar uchun adminga yozing.`,
+      `${tr(lang, "help_title")}\n\n` +
+      `${tr(lang, "help_body")}\n\n` +
+      (cardNum ? `💳 <code>${cardNum}</code>` : ""),
     parse_mode: "HTML",
   });
 }
