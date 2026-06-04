@@ -936,7 +936,7 @@ Deno.serve(async (req) => {
       if (data === "menu:premium") {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: "👑 <b>Premium tarifini tanlang:</b>",
+          text: tr(user.language, "premium_choose"),
           parse_mode: "HTML",
           reply_markup: await premiumPlansInline(),
         });
@@ -946,7 +946,7 @@ Deno.serve(async (req) => {
         const rate = Number(await getSetting("stars_rate_uzs", 220));
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `⭐ <b>Stars paketini tanlang:</b>\n\nJoriy kurs: <b>1 ⭐ = ${fmt(rate)} UZS</b>`,
+          text: tr(user.language, "stars_choose", { rate: fmt(rate) }),
           parse_mode: "HTML",
           reply_markup: await starsPackagesInline(),
         });
@@ -957,7 +957,7 @@ Deno.serve(async (req) => {
         const min = Number(await getSetting("min_topup_uzs", 10000));
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `💳 <b>Balansni to'ldirish</b>\n\nQancha summa to'ldirmoqchisiz? (UZS)\nMinimum: <b>${fmt(min)} UZS</b>`,
+          text: tr(user.language, "topup_prompt", { min: fmt(min) }),
           parse_mode: "HTML",
           reply_markup: cancelKeyboard(user.language),
         });
@@ -972,9 +972,9 @@ Deno.serve(async (req) => {
       if (data === "menu:balance") {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `💰 Balansingiz: <b>${fmt(user.balance)} UZS</b>`,
+          text: tr(user.language, "bal_only", { bal: fmt(user.balance) }),
           parse_mode: "HTML",
-          reply_markup: { inline_keyboard: [[{ text: "💳 To'ldirish", callback_data: "menu:topup" }], [{ text: "⬅️ Bosh menyu", callback_data: "menu:home" }]] },
+          reply_markup: { inline_keyboard: [[{ text: tr(user.language, "btn_topup"), callback_data: "menu:topup" }], [{ text: tr(user.language, "btn_back"), callback_data: "menu:home" }]] },
         });
         return new Response("ok");
       }
