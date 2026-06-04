@@ -346,13 +346,42 @@ function getWizard(user: any): Step | null {
 // ============ Helpers ============
 async function showHome(chatId: number, user: any) {
   const adminFlag = await isBotAdmin(user.telegram_id);
+  // Remove any legacy reply keyboard so the UI is fully inline.
   await tg("sendMessage", {
     chat_id: chatId,
     text: `👋 Xush kelibsiz, <b>${user.full_name || "do'stim"}</b>!\n\nBalans: <b>${fmt(user.balance)} UZS</b>\n\nQuyidagi menyudan tanlang 👇`,
     parse_mode: "HTML",
+    reply_markup: { remove_keyboard: true },
+  });
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "Asosiy menyu:",
     reply_markup: mainMenu(adminFlag),
   });
 }
+
+async function showPrices(chatId: number) {
+  const { data: plans } = await supabase.from("plans").select("*").eq("active", true).order("duration_months");
+  const { data: pkgs } = await supabase.from("stars_packages").select("*").eq("active", true).order("stars");
+  const rate = Number(await getSetting("stars_rate_uzs", 220));
+  const premiumLines = (plans ?? []).map((p: any) => `• ${p.duration_months} oy — <b>${fmt(p.price_uzs)} UZS</b>`).join("\n") || "—";
+  const starsLines = (pkgs ?? []).map((p: any) => `• ⭐ ${p.stars} — <b>${fmt(p.stars * rate)} UZS</b>`).join("\n") || "—";
+  await tg("sendMessage", {
+    chat_id: chatId,
+    parse_mode: "HTML",
+    text:
+      `💱 <b>Narxlar</b>\n\n` +
+      `👑 <b>Premium</b>\n${premiumLines}\n\n` +
+      `⭐ <b>Stars</b> (1⭐ = ${fmt(rate)} UZS)\n${starsLines}`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "👑 Premium sotib olish", callback_data: "menu:premium" }, { text: "⭐ Stars", callback_data: "menu:stars" }],
+        [{ text: "⬅️ Bosh menyu", callback_data: "menu:home" }],
+      ],
+    },
+  });
+}
+
 
 async function showProfile(chatId: number, user: any) {
   await tg("sendMessage", {
