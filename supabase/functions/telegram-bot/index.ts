@@ -76,17 +76,18 @@ async function getOrCreateUser(from: any, startPayload?: string) {
 // ============ Keyboards ============
 function mainMenu(isAdmin = false) {
   const rows: any[] = [
-    [{ text: "👑 Premium" }, { text: "⭐ Stars" }],
-    [{ text: "💰 Balans" }, { text: "💳 Balansni to'ldirish" }],
-    [{ text: "👤 Profil" }, { text: "📋 Buyurtmalarim" }],
-    [{ text: "👥 Referal" }, { text: "ℹ️ Yordam" }],
+    [{ text: "👑 Premium", callback_data: "menu:premium" }, { text: "⭐ Stars", callback_data: "menu:stars" }],
+    [{ text: "💰 Balans", callback_data: "menu:balance" }, { text: "💳 To'ldirish", callback_data: "menu:topup" }],
+    [{ text: "👤 Profil", callback_data: "menu:profile" }, { text: "📋 Buyurtmalarim", callback_data: "menu:orders" }],
+    [{ text: "👥 Referal", callback_data: "menu:ref" }, { text: "💱 Narxlar", callback_data: "menu:prices" }],
+    [{ text: "🌐 Veb-sayt", url: "https://premiumusz.lovable.app" }, { text: "ℹ️ Yordam", callback_data: "menu:help" }],
   ];
-  if (isAdmin) rows.push([{ text: "🛠 Admin panel" }]);
-  return { keyboard: rows, resize_keyboard: true };
+  if (isAdmin) rows.push([{ text: "🛠 Admin panel", callback_data: "menu:admin" }]);
+  return { inline_keyboard: rows };
 }
 
 function cancelKeyboard() {
-  return { keyboard: [[{ text: "❌ Bekor qilish" }]], resize_keyboard: true, one_time_keyboard: true };
+  return { inline_keyboard: [[{ text: "❌ Bekor qilish", callback_data: "menu:cancel" }]] };
 }
 
 function shareContactKeyboard() {
@@ -345,13 +346,42 @@ function getWizard(user: any): Step | null {
 // ============ Helpers ============
 async function showHome(chatId: number, user: any) {
   const adminFlag = await isBotAdmin(user.telegram_id);
+  // Remove any legacy reply keyboard so the UI is fully inline.
   await tg("sendMessage", {
     chat_id: chatId,
     text: `👋 Xush kelibsiz, <b>${user.full_name || "do'stim"}</b>!\n\nBalans: <b>${fmt(user.balance)} UZS</b>\n\nQuyidagi menyudan tanlang 👇`,
     parse_mode: "HTML",
+    reply_markup: { remove_keyboard: true },
+  });
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "Asosiy menyu:",
     reply_markup: mainMenu(adminFlag),
   });
 }
+
+async function showPrices(chatId: number) {
+  const { data: plans } = await supabase.from("plans").select("*").eq("active", true).order("duration_months");
+  const { data: pkgs } = await supabase.from("stars_packages").select("*").eq("active", true).order("stars");
+  const rate = Number(await getSetting("stars_rate_uzs", 220));
+  const premiumLines = (plans ?? []).map((p: any) => `• ${p.duration_months} oy — <b>${fmt(p.price_uzs)} UZS</b>`).join("\n") || "—";
+  const starsLines = (pkgs ?? []).map((p: any) => `• ⭐ ${p.stars} — <b>${fmt(p.stars * rate)} UZS</b>`).join("\n") || "—";
+  await tg("sendMessage", {
+    chat_id: chatId,
+    parse_mode: "HTML",
+    text:
+      `💱 <b>Narxlar</b>\n\n` +
+      `👑 <b>Premium</b>\n${premiumLines}\n\n` +
+      `⭐ <b>Stars</b> (1⭐ = ${fmt(rate)} UZS)\n${starsLines}`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "👑 Premium sotib olish", callback_data: "menu:premium" }, { text: "⭐ Stars", callback_data: "menu:stars" }],
+        [{ text: "⬅️ Bosh menyu", callback_data: "menu:home" }],
+      ],
+    },
+  });
+}
+
 
 async function showProfile(chatId: number, user: any) {
   await tg("sendMessage", {
@@ -840,6 +870,31 @@ Deno.serve(async (req) => {
         return new Response("ok");
       }
 
+      if (data === "menu:cancel") {
+        await clearWizard(user.id);
+        await showHome(chatId, user);
+        return new Response("ok");
+      }
+      if (data === "menu:balance") {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: `💰 Balansingiz: <b>${fmt(user.balance)} UZS</b>`,
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: [[{ text: "💳 To'ldirish", callback_data: "menu:topup" }], [{ text: "⬅️ Bosh menyu", callback_data: "menu:home" }]] },
+        });
+        return new Response("ok");
+      }
+      if (data === "menu:profile") { await showProfile(chatId, user); return new Response("ok"); }
+      if (data === "menu:orders")  { await showOrders(chatId, user);  return new Response("ok"); }
+      if (data === "menu:ref")     { await showReferral(chatId, user); return new Response("ok"); }
+      if (data === "menu:help")    { await showHelp(chatId);          return new Response("ok"); }
+      if (data === "menu:prices")  { await showPrices(chatId);        return new Response("ok"); }
+      if (data === "menu:admin") {
+        if (await isBotAdmin(user.telegram_id)) await showAdminPanel(chatId);
+        else await tg("sendMessage", { chat_id: chatId, text: "❌ Sizda admin huquqi yo'q." });
+        return new Response("ok");
+      }
+
       // Premium plan selected → ask for target username
       if (data.startsWith("premium:")) {
         const planId = data.split(":")[1];
@@ -953,8 +1008,12 @@ Deno.serve(async (req) => {
     const text: string = msg.text || "";
 
     // Cancel always wins
-    if (text === "❌ Bekor qilish") {
+    if (text === "❌ Bekor qilish" || text === "/cancel") {
       await clearWizard(user.id);
+      await showHome(chatId, user);
+      return new Response("ok");
+    }
+    if (text === "/menu") {
       await showHome(chatId, user);
       return new Response("ok");
     }
