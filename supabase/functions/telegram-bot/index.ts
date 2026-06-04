@@ -983,9 +983,18 @@ Deno.serve(async (req) => {
       if (data === "menu:ref")     { await showReferral(chatId, user); return new Response("ok"); }
       if (data === "menu:help")    { await showHelp(chatId, user);          return new Response("ok"); }
       if (data === "menu:prices")  { await showPrices(chatId, user);        return new Response("ok"); }
+      if (data === "menu:settings"){ await showSettings(chatId, user);      return new Response("ok"); }
+      if (data.startsWith("lang:")) {
+        const newLang = L(data.split(":")[1]);
+        await supabase.from("bot_users").update({ language: newLang }).eq("id", user.id);
+        const u2 = { ...user, language: newLang };
+        await tg("sendMessage", { chat_id: chatId, text: tr(newLang, "lang_changed") });
+        await showHome(chatId, u2);
+        return new Response("ok");
+      }
       if (data === "menu:admin") {
         if (await isBotAdmin(user.telegram_id)) await showAdminPanel(chatId);
-        else await tg("sendMessage", { chat_id: chatId, text: "❌ Sizda admin huquqi yo'q." });
+        else await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "no_admin") });
         return new Response("ok");
       }
 
