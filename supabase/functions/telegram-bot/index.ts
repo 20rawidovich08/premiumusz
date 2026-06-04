@@ -1458,7 +1458,7 @@ Deno.serve(async (req) => {
 
     if (text === "👑 Premium" || text === "/premium") {
       if (!user.phone) {
-        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "ask_phone", { name: user.full_name || "" }), parse_mode: "HTML", reply_markup: shareContactKeyboard(user.language) });
         return new Response("ok");
       }
       await tg("sendMessage", {
@@ -1469,7 +1469,7 @@ Deno.serve(async (req) => {
       });
     } else if (text === "⭐ Stars" || text === "/stars") {
       if (!user.phone) {
-        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "ask_phone", { name: user.full_name || "" }), parse_mode: "HTML", reply_markup: shareContactKeyboard(user.language) });
         return new Response("ok");
       }
       const rate = Number(await getSetting("stars_rate_uzs", 220));
@@ -1488,7 +1488,7 @@ Deno.serve(async (req) => {
       });
     } else if (text === "💳 Balansni to'ldirish" || text === "/topup") {
       if (!user.phone) {
-        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "ask_phone", { name: user.full_name || "" }), parse_mode: "HTML", reply_markup: shareContactKeyboard(user.language) });
         return new Response("ok");
       }
       await setWizard(user.id, { kind: "topup_amount" });
