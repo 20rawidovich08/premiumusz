@@ -76,17 +76,18 @@ async function getOrCreateUser(from: any, startPayload?: string) {
 // ============ Keyboards ============
 function mainMenu(isAdmin = false) {
   const rows: any[] = [
-    [{ text: "👑 Premium" }, { text: "⭐ Stars" }],
-    [{ text: "💰 Balans" }, { text: "💳 Balansni to'ldirish" }],
-    [{ text: "👤 Profil" }, { text: "📋 Buyurtmalarim" }],
-    [{ text: "👥 Referal" }, { text: "ℹ️ Yordam" }],
+    [{ text: "👑 Premium", callback_data: "menu:premium" }, { text: "⭐ Stars", callback_data: "menu:stars" }],
+    [{ text: "💰 Balans", callback_data: "menu:balance" }, { text: "💳 To'ldirish", callback_data: "menu:topup" }],
+    [{ text: "👤 Profil", callback_data: "menu:profile" }, { text: "📋 Buyurtmalarim", callback_data: "menu:orders" }],
+    [{ text: "👥 Referal", callback_data: "menu:ref" }, { text: "💱 Narxlar", callback_data: "menu:prices" }],
+    [{ text: "🌐 Veb-sayt", url: "https://premiumusz.lovable.app" }, { text: "ℹ️ Yordam", callback_data: "menu:help" }],
   ];
-  if (isAdmin) rows.push([{ text: "🛠 Admin panel" }]);
-  return { keyboard: rows, resize_keyboard: true };
+  if (isAdmin) rows.push([{ text: "🛠 Admin panel", callback_data: "menu:admin" }]);
+  return { inline_keyboard: rows };
 }
 
 function cancelKeyboard() {
-  return { keyboard: [[{ text: "❌ Bekor qilish" }]], resize_keyboard: true, one_time_keyboard: true };
+  return { inline_keyboard: [[{ text: "❌ Bekor qilish", callback_data: "menu:cancel" }]] };
 }
 
 function shareContactKeyboard() {
