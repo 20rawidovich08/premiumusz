@@ -870,6 +870,31 @@ Deno.serve(async (req) => {
         return new Response("ok");
       }
 
+      if (data === "menu:cancel") {
+        await clearWizard(user.id);
+        await showHome(chatId, user);
+        return new Response("ok");
+      }
+      if (data === "menu:balance") {
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text: `💰 Balansingiz: <b>${fmt(user.balance)} UZS</b>`,
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: [[{ text: "💳 To'ldirish", callback_data: "menu:topup" }], [{ text: "⬅️ Bosh menyu", callback_data: "menu:home" }]] },
+        });
+        return new Response("ok");
+      }
+      if (data === "menu:profile") { await showProfile(chatId, user); return new Response("ok"); }
+      if (data === "menu:orders")  { await showOrders(chatId, user);  return new Response("ok"); }
+      if (data === "menu:ref")     { await showReferral(chatId, user); return new Response("ok"); }
+      if (data === "menu:help")    { await showHelp(chatId);          return new Response("ok"); }
+      if (data === "menu:prices")  { await showPrices(chatId);        return new Response("ok"); }
+      if (data === "menu:admin") {
+        if (await isBotAdmin(user.telegram_id)) await showAdminPanel(chatId);
+        else await tg("sendMessage", { chat_id: chatId, text: "❌ Sizda admin huquqi yo'q." });
+        return new Response("ok");
+      }
+
       // Premium plan selected → ask for target username
       if (data.startsWith("premium:")) {
         const planId = data.split(":")[1];
@@ -884,6 +909,18 @@ Deno.serve(async (req) => {
           });
           return new Response("ok");
         }
+        await setWizard(user.id, { kind: "premium_target", planId });
+        await tg("sendMessage", {
+          chat_id: chatId,
+          text:
+            `👑 <b>Premium ${plan.duration_months} oy</b> — ${fmt(plan.price_uzs)} UZS\n\n` +
+            `Premium qaysi akkauntga kerak? Telegram username yuboring (masalan @username).\n\n` +
+            `O'zingizga olishni xohlasangiz @${user.username || "username"} yuboring.`,
+          parse_mode: "HTML",
+          reply_markup: cancelKeyboard(),
+        });
+        return new Response("ok");
+      }
         await setWizard(user.id, { kind: "premium_target", planId });
         await tg("sendMessage", {
           chat_id: chatId,
