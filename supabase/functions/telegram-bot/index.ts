@@ -73,26 +73,99 @@ async function getOrCreateUser(from: any, startPayload?: string) {
   return created;
 }
 
+// ============ i18n ============
+type Lang = "uz" | "ru" | "en";
+const LANG_NAMES: Record<Lang, string> = { uz: "🇺🇿 O'zbekcha", ru: "🇷🇺 Русский", en: "🇬🇧 English" };
+function L(v: any): Lang { return v === "ru" || v === "en" ? v : "uz"; }
+const T: Record<string, Record<Lang, string>> = {
+  welcome:        { uz: "👋 Xush kelibsiz, <b>{name}</b>!\n\nBalans: <b>{bal} UZS</b>\n\nQuyidagi menyudan tanlang 👇", ru: "👋 Добро пожаловать, <b>{name}</b>!\n\nБаланс: <b>{bal} UZS</b>\n\nВыберите пункт меню 👇", en: "👋 Welcome, <b>{name}</b>!\n\nBalance: <b>{bal} UZS</b>\n\nChoose from the menu 👇" },
+  main_menu:      { uz: "Asosiy menyu:", ru: "Главное меню:", en: "Main menu:" },
+  btn_premium:    { uz: "👑 Premium", ru: "👑 Премиум", en: "👑 Premium" },
+  btn_stars:      { uz: "⭐ Stars", ru: "⭐ Звёзды", en: "⭐ Stars" },
+  btn_balance:    { uz: "💰 Balans", ru: "💰 Баланс", en: "💰 Balance" },
+  btn_topup:      { uz: "💳 To'ldirish", ru: "💳 Пополнить", en: "💳 Top up" },
+  btn_profile:    { uz: "👤 Profil", ru: "👤 Профиль", en: "👤 Profile" },
+  btn_orders:     { uz: "📋 Buyurtmalarim", ru: "📋 Мои заказы", en: "📋 My orders" },
+  btn_ref:        { uz: "👥 Referal", ru: "👥 Рефералы", en: "👥 Referrals" },
+  btn_prices:     { uz: "💱 Narxlar", ru: "💱 Цены", en: "💱 Prices" },
+  btn_website:    { uz: "🌐 Veb-sayt", ru: "🌐 Сайт", en: "🌐 Website" },
+  btn_help:       { uz: "ℹ️ Yordam", ru: "ℹ️ Помощь", en: "ℹ️ Help" },
+  btn_settings:   { uz: "⚙️ Sozlamalar", ru: "⚙️ Настройки", en: "⚙️ Settings" },
+  btn_admin:      { uz: "🛠 Admin panel", ru: "🛠 Админ-панель", en: "🛠 Admin panel" },
+  btn_cancel:     { uz: "❌ Bekor qilish", ru: "❌ Отмена", en: "❌ Cancel" },
+  btn_back:       { uz: "⬅️ Bosh menyu", ru: "⬅️ Главное меню", en: "⬅️ Main menu" },
+  btn_share:      { uz: "📱 Raqamni ulashish", ru: "📱 Поделиться номером", en: "📱 Share number" },
+  settings_title: { uz: "⚙️ <b>Sozlamalar</b>\n\nJoriy til: {cur}\n\nTilni tanlang:", ru: "⚙️ <b>Настройки</b>\n\nТекущий язык: {cur}\n\nВыберите язык:", en: "⚙️ <b>Settings</b>\n\nCurrent language: {cur}\n\nChoose language:" },
+  lang_changed:   { uz: "✅ Til o'zgartirildi.", ru: "✅ Язык изменён.", en: "✅ Language changed." },
+  profile_title:  { uz: "👤 <b>Profil</b>", ru: "👤 <b>Профиль</b>", en: "👤 <b>Profile</b>" },
+  f_name:         { uz: "Ism", ru: "Имя", en: "Name" },
+  f_phone:        { uz: "Telefon", ru: "Телефон", en: "Phone" },
+  f_balance:      { uz: "Balans", ru: "Баланс", en: "Balance" },
+  edit_phone_btn: { uz: "✏️ Telefon o'zgartirish", ru: "✏️ Изменить телефон", en: "✏️ Edit phone" },
+  topup_btn:      { uz: "💳 Balansni to'ldirish", ru: "💳 Пополнить баланс", en: "💳 Top up balance" },
+  no_orders:      { uz: "Sizda hali buyurtmalar yo'q.", ru: "У вас пока нет заказов.", en: "You have no orders yet." },
+  orders_title:   { uz: "📋 <b>So'nggi buyurtmalaringiz</b>", ru: "📋 <b>Последние заказы</b>", en: "📋 <b>Recent orders</b>" },
+  ref_title:      { uz: "👥 <b>Referal dasturi</b>", ru: "👥 <b>Реферальная программа</b>", en: "👥 <b>Referral program</b>" },
+  ref_per:        { uz: "Har bir taklif uchun", ru: "За каждое приглашение", en: "Per referral" },
+  ref_count:      { uz: "Sizning takliflaringiz", ru: "Ваших приглашений", en: "Your referrals" },
+  ref_link:       { uz: "Sizning havolangiz", ru: "Ваша ссылка", en: "Your link" },
+  help_title:     { uz: "ℹ️ <b>Yordam</b>", ru: "ℹ️ <b>Помощь</b>", en: "ℹ️ <b>Help</b>" },
+  help_body:      { uz: "👑 <b>Premium</b> — 3/6/12 oylik Telegram Premium\n⭐ <b>Stars</b> — minimum 50 dona\n💳 <b>To'ldirish</b> — karta orqali, chek yuborilgach admin tasdiqlaydi\n👥 <b>Referal</b> — do'stlaringizni taklif qilib bonus oling\n\nSavollar uchun adminga yozing.", ru: "👑 <b>Премиум</b> — 3/6/12 мес Telegram Premium\n⭐ <b>Stars</b> — минимум 50 шт\n💳 <b>Пополнение</b> — картой, после чека админ подтверждает\n👥 <b>Рефералы</b> — приглашайте друзей и получайте бонус\n\nПо вопросам пишите админу.", en: "👑 <b>Premium</b> — 3/6/12 month Telegram Premium\n⭐ <b>Stars</b> — minimum 50\n💳 <b>Top up</b> — by card, admin confirms after receipt\n👥 <b>Referrals</b> — invite friends and earn bonus\n\nContact admin for questions." },
+  prices_title:   { uz: "💱 <b>Narxlar</b>", ru: "💱 <b>Цены</b>", en: "💱 <b>Prices</b>" },
+  bal_only:       { uz: "💰 Balansingiz: <b>{bal} UZS</b>", ru: "💰 Ваш баланс: <b>{bal} UZS</b>", en: "💰 Your balance: <b>{bal} UZS</b>" },
+  enter_phone:    { uz: "📱 Yangi telefon raqamingizni yuboring:", ru: "📱 Отправьте новый номер телефона:", en: "📱 Send your new phone number:" },
+  phone_saved:    { uz: "✅ Telefon yangilandi!", ru: "✅ Телефон обновлён!", en: "✅ Phone updated!" },
+  phone_bad:      { uz: "❌ Telefon raqami noto'g'ri. Qayta yuboring:", ru: "❌ Неверный номер. Отправьте ещё раз:", en: "❌ Invalid phone. Try again:" },
+  ask_phone:      { uz: "👋 <b>Assalomu alaykum, {name}!</b>\n\nAvval telefon raqamingizni yuboring 👇", ru: "👋 <b>Здравствуйте, {name}!</b>\n\nСначала отправьте номер телефона 👇", en: "👋 <b>Hello, {name}!</b>\n\nFirst, share your phone number 👇" },
+  start_intro:    { uz: "👋 <b>Assalomu alaykum, {name}!</b>\n\nTelegram Premium va Stars do'koniga xush kelibsiz.\n\nBoshlash uchun telefon raqamingizni yuboring 👇", ru: "👋 <b>Здравствуйте, {name}!</b>\n\nДобро пожаловать в магазин Telegram Premium и Stars.\n\nЧтобы начать, поделитесь номером телефона 👇", en: "👋 <b>Hello, {name}!</b>\n\nWelcome to the Telegram Premium & Stars shop.\n\nTo begin, share your phone number 👇" },
+  phone_saved_ok: { uz: "✅ Telefon raqami saqlandi!", ru: "✅ Номер сохранён!", en: "✅ Phone saved!" },
+  premium_choose: { uz: "👑 <b>Premium tarifini tanlang:</b>", ru: "👑 <b>Выберите тариф Premium:</b>", en: "👑 <b>Choose a Premium plan:</b>" },
+  stars_choose:   { uz: "⭐ <b>Stars paketini tanlang:</b>\n\nJoriy kurs: <b>1 ⭐ = {rate} UZS</b>", ru: "⭐ <b>Выберите пакет Stars:</b>\n\nКурс: <b>1 ⭐ = {rate} UZS</b>", en: "⭐ <b>Choose Stars package:</b>\n\nRate: <b>1 ⭐ = {rate} UZS</b>" },
+  topup_prompt:   { uz: "💳 <b>Balansni to'ldirish</b>\n\nQancha summa to'ldirmoqchisiz? (UZS)\nMinimum: <b>{min} UZS</b>", ru: "💳 <b>Пополнение баланса</b>\n\nНа какую сумму? (UZS)\nМинимум: <b>{min} UZS</b>", en: "💳 <b>Top up balance</b>\n\nHow much (UZS)?\nMinimum: <b>{min} UZS</b>" },
+  no_balance:     { uz: "❌ Balansda yetarli mablag' yo'q.\n\nKerak: <b>{need} UZS</b>\nSizda: <b>{have} UZS</b>", ru: "❌ Недостаточно средств.\n\nНужно: <b>{need} UZS</b>\nУ вас: <b>{have} UZS</b>", en: "❌ Insufficient balance.\n\nNeed: <b>{need} UZS</b>\nYou have: <b>{have} UZS</b>" },
+  ask_premium_target: { uz: "👑 <b>Premium {m} oy</b> — {p} UZS\n\nPremium qaysi akkauntga kerak? Telegram username yuboring (masalan @username).\n\nO'zingizga olmoqchi bo'lsangiz @{me} yuboring.", ru: "👑 <b>Premium {m} мес</b> — {p} UZS\n\nДля какого аккаунта? Отправьте @username.\n\nДля себя — @{me}.", en: "👑 <b>Premium {m} mo</b> — {p} UZS\n\nWhich account? Send the Telegram @username.\n\nFor yourself — @{me}." },
+  ask_stars_amount: { uz: "⭐ <b>Stars miqdorini kiriting</b>\n\nMinimum: <b>{min}</b> ⭐\nKurs: <b>1 ⭐ = {rate} UZS</b>\nSizdagi balans: <b>{bal} UZS</b>\n\nFaqat son yuboring (masalan: 120):", ru: "⭐ <b>Введите количество Stars</b>\n\nМинимум: <b>{min}</b> ⭐\nКурс: <b>1 ⭐ = {rate} UZS</b>\nВаш баланс: <b>{bal} UZS</b>\n\nОтправьте число (например 120):", en: "⭐ <b>Enter Stars amount</b>\n\nMinimum: <b>{min}</b> ⭐\nRate: <b>1 ⭐ = {rate} UZS</b>\nYour balance: <b>{bal} UZS</b>\n\nSend a number (e.g. 120):" },
+  ask_stars_target: { uz: "⭐ <b>{s} Stars</b> — {p} UZS\n\nStars qaysi akkauntga kerak? Telegram username yuboring (@username).", ru: "⭐ <b>{s} Stars</b> — {p} UZS\n\nДля какого аккаунта? Отправьте @username.", en: "⭐ <b>{s} Stars</b> — {p} UZS\n\nWhich account? Send @username." },
+  bad_username:   { uz: "❌ Username noto'g'ri formatda. @ bilan boshlanishi va 5–32 belgi bo'lishi kerak.\nQayta yuboring:", ru: "❌ Неверный username. Должен начинаться с @ и быть 5–32 символа.\nОтправьте ещё раз:", en: "❌ Invalid username. Must start with @ and be 5–32 chars.\nTry again:" },
+  bad_stars:      { uz: "❌ Noto'g'ri miqdor. Minimum <b>{min}</b> ⭐. Qayta yuboring:", ru: "❌ Неверное количество. Минимум <b>{min}</b> ⭐. Ещё раз:", en: "❌ Invalid amount. Minimum <b>{min}</b> ⭐. Try again:" },
+  bad_amount:     { uz: "❌ Summa noto'g'ri yoki minimumdan kam ({min} UZS).\nQayta kiriting:", ru: "❌ Сумма неверна или меньше минимума ({min} UZS).\nЕщё раз:", en: "❌ Invalid amount or below minimum ({min} UZS).\nTry again:" },
+  topup_pay_info: { uz: "💳 <b>To'lov ma'lumotlari</b>\n\nKarta: <code>{c}</code>\nEgasi: <b>{h}</b>\n{b}\n💵 Summa: <b>{a} UZS</b>\n\nTo'lovni amalga oshirgach <b>chek rasmini yuboring</b> 📸", ru: "💳 <b>Данные для оплаты</b>\n\nКарта: <code>{c}</code>\nВладелец: <b>{h}</b>\n{b}\n💵 Сумма: <b>{a} UZS</b>\n\nПосле оплаты <b>отправьте фото чека</b> 📸", en: "💳 <b>Payment details</b>\n\nCard: <code>{c}</code>\nHolder: <b>{h}</b>\n{b}\n💵 Amount: <b>{a} UZS</b>\n\nAfter payment, <b>send the receipt photo</b> 📸" },
+  need_photo:     { uz: "❌ Iltimos chek <b>rasm</b>ini yuboring (matn emas).", ru: "❌ Отправьте <b>фото</b> чека (не текст).", en: "❌ Please send the receipt <b>photo</b> (not text)." },
+  receipt_ok:     { uz: "✅ Chek qabul qilindi!\n\nSumma: <b>{a} UZS</b>\n\n⏳ <b>Iltimos admin tasdiqlashini kuting!</b>\n30 daqiqadan 24 soat ichida to'lovingiz tasdiqlanadi.", ru: "✅ Чек получен!\n\nСумма: <b>{a} UZS</b>\n\n⏳ <b>Ожидайте подтверждения админа</b>\nОт 30 минут до 24 часов.", en: "✅ Receipt received!\n\nAmount: <b>{a} UZS</b>\n\n⏳ <b>Awaiting admin approval</b>\nFrom 30 minutes to 24 hours." },
+  order_ok_premium: { uz: "✅ <b>Buyurtma qabul qilindi!</b>\n\n№ <code>{n}</code>\nPremium {m} oy → {t}\nYangi balans: <b>{b} UZS</b>\n\nAdmin tasdiqlagach Premium faollashtiriladi.", ru: "✅ <b>Заказ принят!</b>\n\n№ <code>{n}</code>\nPremium {m} мес → {t}\nНовый баланс: <b>{b} UZS</b>\n\nПосле подтверждения админа Premium активируется.", en: "✅ <b>Order accepted!</b>\n\n№ <code>{n}</code>\nPremium {m} mo → {t}\nNew balance: <b>{b} UZS</b>\n\nPremium activates after admin approval." },
+  order_ok_stars: { uz: "✅ <b>Buyurtma qabul qilindi!</b>\n\n№ <code>{n}</code>\n⭐ {s} Stars → {t}\nYangi balans: <b>{b} UZS</b>\n\nAdmin tasdiqlagach yetkaziladi.", ru: "✅ <b>Заказ принят!</b>\n\n№ <code>{n}</code>\n⭐ {s} Stars → {t}\nНовый баланс: <b>{b} UZS</b>\n\nПосле подтверждения админа будет доставлен.", en: "✅ <b>Order accepted!</b>\n\n№ <code>{n}</code>\n⭐ {s} Stars → {t}\nNew balance: <b>{b} UZS</b>\n\nWill be delivered after admin approval." },
+  no_balance_short: { uz: "❌ Balans yetarli emas.", ru: "❌ Недостаточно средств.", en: "❌ Insufficient balance." },
+  banned:         { uz: "Sizning hisobingiz bloklangan.", ru: "Ваш аккаунт заблокирован.", en: "Your account is blocked." },
+  no_admin:       { uz: "❌ Sizda admin huquqi yo'q.", ru: "❌ Нет прав администратора.", en: "❌ No admin rights." },
+};
+function tr(lang: any, key: string, vars: Record<string, any> = {}): string {
+  const l = L(lang);
+  let s = T[key]?.[l] ?? T[key]?.uz ?? key;
+  for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(String(v));
+  return s;
+}
+
 // ============ Keyboards ============
-function mainMenu(isAdmin = false) {
+function mainMenu(isAdmin = false, lang: any = "uz") {
   const rows: any[] = [
-    [{ text: "👑 Premium", callback_data: "menu:premium" }, { text: "⭐ Stars", callback_data: "menu:stars" }],
-    [{ text: "💰 Balans", callback_data: "menu:balance" }, { text: "💳 To'ldirish", callback_data: "menu:topup" }],
-    [{ text: "👤 Profil", callback_data: "menu:profile" }, { text: "📋 Buyurtmalarim", callback_data: "menu:orders" }],
-    [{ text: "👥 Referal", callback_data: "menu:ref" }, { text: "💱 Narxlar", callback_data: "menu:prices" }],
-    [{ text: "🌐 Veb-sayt", url: "https://premiumusz.lovable.app" }, { text: "ℹ️ Yordam", callback_data: "menu:help" }],
+    [{ text: tr(lang, "btn_premium"), callback_data: "menu:premium" }, { text: tr(lang, "btn_stars"), callback_data: "menu:stars" }],
+    [{ text: tr(lang, "btn_balance"), callback_data: "menu:balance" }, { text: tr(lang, "btn_topup"), callback_data: "menu:topup" }],
+    [{ text: tr(lang, "btn_profile"), callback_data: "menu:profile" }, { text: tr(lang, "btn_orders"), callback_data: "menu:orders" }],
+    [{ text: tr(lang, "btn_ref"), callback_data: "menu:ref" }, { text: tr(lang, "btn_prices"), callback_data: "menu:prices" }],
+    [{ text: tr(lang, "btn_website"), url: "https://premiumusz.lovable.app" }, { text: tr(lang, "btn_help"), callback_data: "menu:help" }],
+    [{ text: tr(lang, "btn_settings"), callback_data: "menu:settings" }],
   ];
-  if (isAdmin) rows.push([{ text: "🛠 Admin panel", callback_data: "menu:admin" }]);
+  if (isAdmin) rows.push([{ text: tr(lang, "btn_admin"), callback_data: "menu:admin" }]);
   return { inline_keyboard: rows };
 }
 
-function cancelKeyboard() {
-  return { inline_keyboard: [[{ text: "❌ Bekor qilish", callback_data: "menu:cancel" }]] };
+function cancelKeyboard(lang: any = "uz") {
+  return { inline_keyboard: [[{ text: tr(lang, "btn_cancel"), callback_data: "menu:cancel" }]] };
 }
 
-function shareContactKeyboard() {
+function shareContactKeyboard(lang: any = "uz") {
   return {
-    keyboard: [[{ text: "📱 Raqamni ulashish", request_contact: true }]],
+    keyboard: [[{ text: tr(lang, "btn_share"), request_contact: true }]],
     resize_keyboard: true,
     one_time_keyboard: true,
   };
