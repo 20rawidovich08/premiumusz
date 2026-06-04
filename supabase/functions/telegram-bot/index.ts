@@ -73,26 +73,99 @@ async function getOrCreateUser(from: any, startPayload?: string) {
   return created;
 }
 
+// ============ i18n ============
+type Lang = "uz" | "ru" | "en";
+const LANG_NAMES: Record<Lang, string> = { uz: "🇺🇿 O'zbekcha", ru: "🇷🇺 Русский", en: "🇬🇧 English" };
+function L(v: any): Lang { return v === "ru" || v === "en" ? v : "uz"; }
+const T: Record<string, Record<Lang, string>> = {
+  welcome:        { uz: "👋 Xush kelibsiz, <b>{name}</b>!\n\nBalans: <b>{bal} UZS</b>\n\nQuyidagi menyudan tanlang 👇", ru: "👋 Добро пожаловать, <b>{name}</b>!\n\nБаланс: <b>{bal} UZS</b>\n\nВыберите пункт меню 👇", en: "👋 Welcome, <b>{name}</b>!\n\nBalance: <b>{bal} UZS</b>\n\nChoose from the menu 👇" },
+  main_menu:      { uz: "Asosiy menyu:", ru: "Главное меню:", en: "Main menu:" },
+  btn_premium:    { uz: "👑 Premium", ru: "👑 Премиум", en: "👑 Premium" },
+  btn_stars:      { uz: "⭐ Stars", ru: "⭐ Звёзды", en: "⭐ Stars" },
+  btn_balance:    { uz: "💰 Balans", ru: "💰 Баланс", en: "💰 Balance" },
+  btn_topup:      { uz: "💳 To'ldirish", ru: "💳 Пополнить", en: "💳 Top up" },
+  btn_profile:    { uz: "👤 Profil", ru: "👤 Профиль", en: "👤 Profile" },
+  btn_orders:     { uz: "📋 Buyurtmalarim", ru: "📋 Мои заказы", en: "📋 My orders" },
+  btn_ref:        { uz: "👥 Referal", ru: "👥 Рефералы", en: "👥 Referrals" },
+  btn_prices:     { uz: "💱 Narxlar", ru: "💱 Цены", en: "💱 Prices" },
+  btn_website:    { uz: "🌐 Veb-sayt", ru: "🌐 Сайт", en: "🌐 Website" },
+  btn_help:       { uz: "ℹ️ Yordam", ru: "ℹ️ Помощь", en: "ℹ️ Help" },
+  btn_settings:   { uz: "⚙️ Sozlamalar", ru: "⚙️ Настройки", en: "⚙️ Settings" },
+  btn_admin:      { uz: "🛠 Admin panel", ru: "🛠 Админ-панель", en: "🛠 Admin panel" },
+  btn_cancel:     { uz: "❌ Bekor qilish", ru: "❌ Отмена", en: "❌ Cancel" },
+  btn_back:       { uz: "⬅️ Bosh menyu", ru: "⬅️ Главное меню", en: "⬅️ Main menu" },
+  btn_share:      { uz: "📱 Raqamni ulashish", ru: "📱 Поделиться номером", en: "📱 Share number" },
+  settings_title: { uz: "⚙️ <b>Sozlamalar</b>\n\nJoriy til: {cur}\n\nTilni tanlang:", ru: "⚙️ <b>Настройки</b>\n\nТекущий язык: {cur}\n\nВыберите язык:", en: "⚙️ <b>Settings</b>\n\nCurrent language: {cur}\n\nChoose language:" },
+  lang_changed:   { uz: "✅ Til o'zgartirildi.", ru: "✅ Язык изменён.", en: "✅ Language changed." },
+  profile_title:  { uz: "👤 <b>Profil</b>", ru: "👤 <b>Профиль</b>", en: "👤 <b>Profile</b>" },
+  f_name:         { uz: "Ism", ru: "Имя", en: "Name" },
+  f_phone:        { uz: "Telefon", ru: "Телефон", en: "Phone" },
+  f_balance:      { uz: "Balans", ru: "Баланс", en: "Balance" },
+  edit_phone_btn: { uz: "✏️ Telefon o'zgartirish", ru: "✏️ Изменить телефон", en: "✏️ Edit phone" },
+  topup_btn:      { uz: "💳 Balansni to'ldirish", ru: "💳 Пополнить баланс", en: "💳 Top up balance" },
+  no_orders:      { uz: "Sizda hali buyurtmalar yo'q.", ru: "У вас пока нет заказов.", en: "You have no orders yet." },
+  orders_title:   { uz: "📋 <b>So'nggi buyurtmalaringiz</b>", ru: "📋 <b>Последние заказы</b>", en: "📋 <b>Recent orders</b>" },
+  ref_title:      { uz: "👥 <b>Referal dasturi</b>", ru: "👥 <b>Реферальная программа</b>", en: "👥 <b>Referral program</b>" },
+  ref_per:        { uz: "Har bir taklif uchun", ru: "За каждое приглашение", en: "Per referral" },
+  ref_count:      { uz: "Sizning takliflaringiz", ru: "Ваших приглашений", en: "Your referrals" },
+  ref_link:       { uz: "Sizning havolangiz", ru: "Ваша ссылка", en: "Your link" },
+  help_title:     { uz: "ℹ️ <b>Yordam</b>", ru: "ℹ️ <b>Помощь</b>", en: "ℹ️ <b>Help</b>" },
+  help_body:      { uz: "👑 <b>Premium</b> — 3/6/12 oylik Telegram Premium\n⭐ <b>Stars</b> — minimum 50 dona\n💳 <b>To'ldirish</b> — karta orqali, chek yuborilgach admin tasdiqlaydi\n👥 <b>Referal</b> — do'stlaringizni taklif qilib bonus oling\n\nSavollar uchun adminga yozing.", ru: "👑 <b>Премиум</b> — 3/6/12 мес Telegram Premium\n⭐ <b>Stars</b> — минимум 50 шт\n💳 <b>Пополнение</b> — картой, после чека админ подтверждает\n👥 <b>Рефералы</b> — приглашайте друзей и получайте бонус\n\nПо вопросам пишите админу.", en: "👑 <b>Premium</b> — 3/6/12 month Telegram Premium\n⭐ <b>Stars</b> — minimum 50\n💳 <b>Top up</b> — by card, admin confirms after receipt\n👥 <b>Referrals</b> — invite friends and earn bonus\n\nContact admin for questions." },
+  prices_title:   { uz: "💱 <b>Narxlar</b>", ru: "💱 <b>Цены</b>", en: "💱 <b>Prices</b>" },
+  bal_only:       { uz: "💰 Balansingiz: <b>{bal} UZS</b>", ru: "💰 Ваш баланс: <b>{bal} UZS</b>", en: "💰 Your balance: <b>{bal} UZS</b>" },
+  enter_phone:    { uz: "📱 Yangi telefon raqamingizni yuboring:", ru: "📱 Отправьте новый номер телефона:", en: "📱 Send your new phone number:" },
+  phone_saved:    { uz: "✅ Telefon yangilandi!", ru: "✅ Телефон обновлён!", en: "✅ Phone updated!" },
+  phone_bad:      { uz: "❌ Telefon raqami noto'g'ri. Qayta yuboring:", ru: "❌ Неверный номер. Отправьте ещё раз:", en: "❌ Invalid phone. Try again:" },
+  ask_phone:      { uz: "👋 <b>Assalomu alaykum, {name}!</b>\n\nAvval telefon raqamingizni yuboring 👇", ru: "👋 <b>Здравствуйте, {name}!</b>\n\nСначала отправьте номер телефона 👇", en: "👋 <b>Hello, {name}!</b>\n\nFirst, share your phone number 👇" },
+  start_intro:    { uz: "👋 <b>Assalomu alaykum, {name}!</b>\n\nTelegram Premium va Stars do'koniga xush kelibsiz.\n\nBoshlash uchun telefon raqamingizni yuboring 👇", ru: "👋 <b>Здравствуйте, {name}!</b>\n\nДобро пожаловать в магазин Telegram Premium и Stars.\n\nЧтобы начать, поделитесь номером телефона 👇", en: "👋 <b>Hello, {name}!</b>\n\nWelcome to the Telegram Premium & Stars shop.\n\nTo begin, share your phone number 👇" },
+  phone_saved_ok: { uz: "✅ Telefon raqami saqlandi!", ru: "✅ Номер сохранён!", en: "✅ Phone saved!" },
+  premium_choose: { uz: "👑 <b>Premium tarifini tanlang:</b>", ru: "👑 <b>Выберите тариф Premium:</b>", en: "👑 <b>Choose a Premium plan:</b>" },
+  stars_choose:   { uz: "⭐ <b>Stars paketini tanlang:</b>\n\nJoriy kurs: <b>1 ⭐ = {rate} UZS</b>", ru: "⭐ <b>Выберите пакет Stars:</b>\n\nКурс: <b>1 ⭐ = {rate} UZS</b>", en: "⭐ <b>Choose Stars package:</b>\n\nRate: <b>1 ⭐ = {rate} UZS</b>" },
+  topup_prompt:   { uz: "💳 <b>Balansni to'ldirish</b>\n\nQancha summa to'ldirmoqchisiz? (UZS)\nMinimum: <b>{min} UZS</b>", ru: "💳 <b>Пополнение баланса</b>\n\nНа какую сумму? (UZS)\nМинимум: <b>{min} UZS</b>", en: "💳 <b>Top up balance</b>\n\nHow much (UZS)?\nMinimum: <b>{min} UZS</b>" },
+  no_balance:     { uz: "❌ Balansda yetarli mablag' yo'q.\n\nKerak: <b>{need} UZS</b>\nSizda: <b>{have} UZS</b>", ru: "❌ Недостаточно средств.\n\nНужно: <b>{need} UZS</b>\nУ вас: <b>{have} UZS</b>", en: "❌ Insufficient balance.\n\nNeed: <b>{need} UZS</b>\nYou have: <b>{have} UZS</b>" },
+  ask_premium_target: { uz: "👑 <b>Premium {m} oy</b> — {p} UZS\n\nPremium qaysi akkauntga kerak? Telegram username yuboring (masalan @username).\n\nO'zingizga olmoqchi bo'lsangiz @{me} yuboring.", ru: "👑 <b>Premium {m} мес</b> — {p} UZS\n\nДля какого аккаунта? Отправьте @username.\n\nДля себя — @{me}.", en: "👑 <b>Premium {m} mo</b> — {p} UZS\n\nWhich account? Send the Telegram @username.\n\nFor yourself — @{me}." },
+  ask_stars_amount: { uz: "⭐ <b>Stars miqdorini kiriting</b>\n\nMinimum: <b>{min}</b> ⭐\nKurs: <b>1 ⭐ = {rate} UZS</b>\nSizdagi balans: <b>{bal} UZS</b>\n\nFaqat son yuboring (masalan: 120):", ru: "⭐ <b>Введите количество Stars</b>\n\nМинимум: <b>{min}</b> ⭐\nКурс: <b>1 ⭐ = {rate} UZS</b>\nВаш баланс: <b>{bal} UZS</b>\n\nОтправьте число (например 120):", en: "⭐ <b>Enter Stars amount</b>\n\nMinimum: <b>{min}</b> ⭐\nRate: <b>1 ⭐ = {rate} UZS</b>\nYour balance: <b>{bal} UZS</b>\n\nSend a number (e.g. 120):" },
+  ask_stars_target: { uz: "⭐ <b>{s} Stars</b> — {p} UZS\n\nStars qaysi akkauntga kerak? Telegram username yuboring (@username).", ru: "⭐ <b>{s} Stars</b> — {p} UZS\n\nДля какого аккаунта? Отправьте @username.", en: "⭐ <b>{s} Stars</b> — {p} UZS\n\nWhich account? Send @username." },
+  bad_username:   { uz: "❌ Username noto'g'ri formatda. @ bilan boshlanishi va 5–32 belgi bo'lishi kerak.\nQayta yuboring:", ru: "❌ Неверный username. Должен начинаться с @ и быть 5–32 символа.\nОтправьте ещё раз:", en: "❌ Invalid username. Must start with @ and be 5–32 chars.\nTry again:" },
+  bad_stars:      { uz: "❌ Noto'g'ri miqdor. Minimum <b>{min}</b> ⭐. Qayta yuboring:", ru: "❌ Неверное количество. Минимум <b>{min}</b> ⭐. Ещё раз:", en: "❌ Invalid amount. Minimum <b>{min}</b> ⭐. Try again:" },
+  bad_amount:     { uz: "❌ Summa noto'g'ri yoki minimumdan kam ({min} UZS).\nQayta kiriting:", ru: "❌ Сумма неверна или меньше минимума ({min} UZS).\nЕщё раз:", en: "❌ Invalid amount or below minimum ({min} UZS).\nTry again:" },
+  topup_pay_info: { uz: "💳 <b>To'lov ma'lumotlari</b>\n\nKarta: <code>{c}</code>\nEgasi: <b>{h}</b>\n{b}\n💵 Summa: <b>{a} UZS</b>\n\nTo'lovni amalga oshirgach <b>chek rasmini yuboring</b> 📸", ru: "💳 <b>Данные для оплаты</b>\n\nКарта: <code>{c}</code>\nВладелец: <b>{h}</b>\n{b}\n💵 Сумма: <b>{a} UZS</b>\n\nПосле оплаты <b>отправьте фото чека</b> 📸", en: "💳 <b>Payment details</b>\n\nCard: <code>{c}</code>\nHolder: <b>{h}</b>\n{b}\n💵 Amount: <b>{a} UZS</b>\n\nAfter payment, <b>send the receipt photo</b> 📸" },
+  need_photo:     { uz: "❌ Iltimos chek <b>rasm</b>ini yuboring (matn emas).", ru: "❌ Отправьте <b>фото</b> чека (не текст).", en: "❌ Please send the receipt <b>photo</b> (not text)." },
+  receipt_ok:     { uz: "✅ Chek qabul qilindi!\n\nSumma: <b>{a} UZS</b>\n\n⏳ <b>Iltimos admin tasdiqlashini kuting!</b>\n30 daqiqadan 24 soat ichida to'lovingiz tasdiqlanadi.", ru: "✅ Чек получен!\n\nСумма: <b>{a} UZS</b>\n\n⏳ <b>Ожидайте подтверждения админа</b>\nОт 30 минут до 24 часов.", en: "✅ Receipt received!\n\nAmount: <b>{a} UZS</b>\n\n⏳ <b>Awaiting admin approval</b>\nFrom 30 minutes to 24 hours." },
+  order_ok_premium: { uz: "✅ <b>Buyurtma qabul qilindi!</b>\n\n№ <code>{n}</code>\nPremium {m} oy → {t}\nYangi balans: <b>{b} UZS</b>\n\nAdmin tasdiqlagach Premium faollashtiriladi.", ru: "✅ <b>Заказ принят!</b>\n\n№ <code>{n}</code>\nPremium {m} мес → {t}\nНовый баланс: <b>{b} UZS</b>\n\nПосле подтверждения админа Premium активируется.", en: "✅ <b>Order accepted!</b>\n\n№ <code>{n}</code>\nPremium {m} mo → {t}\nNew balance: <b>{b} UZS</b>\n\nPremium activates after admin approval." },
+  order_ok_stars: { uz: "✅ <b>Buyurtma qabul qilindi!</b>\n\n№ <code>{n}</code>\n⭐ {s} Stars → {t}\nYangi balans: <b>{b} UZS</b>\n\nAdmin tasdiqlagach yetkaziladi.", ru: "✅ <b>Заказ принят!</b>\n\n№ <code>{n}</code>\n⭐ {s} Stars → {t}\nНовый баланс: <b>{b} UZS</b>\n\nПосле подтверждения админа будет доставлен.", en: "✅ <b>Order accepted!</b>\n\n№ <code>{n}</code>\n⭐ {s} Stars → {t}\nNew balance: <b>{b} UZS</b>\n\nWill be delivered after admin approval." },
+  no_balance_short: { uz: "❌ Balans yetarli emas.", ru: "❌ Недостаточно средств.", en: "❌ Insufficient balance." },
+  banned:         { uz: "Sizning hisobingiz bloklangan.", ru: "Ваш аккаунт заблокирован.", en: "Your account is blocked." },
+  no_admin:       { uz: "❌ Sizda admin huquqi yo'q.", ru: "❌ Нет прав администратора.", en: "❌ No admin rights." },
+};
+function tr(lang: any, key: string, vars: Record<string, any> = {}): string {
+  const l = L(lang);
+  let s = T[key]?.[l] ?? T[key]?.uz ?? key;
+  for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(String(v));
+  return s;
+}
+
 // ============ Keyboards ============
-function mainMenu(isAdmin = false) {
+function mainMenu(isAdmin = false, lang: any = "uz") {
   const rows: any[] = [
-    [{ text: "👑 Premium", callback_data: "menu:premium" }, { text: "⭐ Stars", callback_data: "menu:stars" }],
-    [{ text: "💰 Balans", callback_data: "menu:balance" }, { text: "💳 To'ldirish", callback_data: "menu:topup" }],
-    [{ text: "👤 Profil", callback_data: "menu:profile" }, { text: "📋 Buyurtmalarim", callback_data: "menu:orders" }],
-    [{ text: "👥 Referal", callback_data: "menu:ref" }, { text: "💱 Narxlar", callback_data: "menu:prices" }],
-    [{ text: "🌐 Veb-sayt", url: "https://premiumusz.lovable.app" }, { text: "ℹ️ Yordam", callback_data: "menu:help" }],
+    [{ text: tr(lang, "btn_premium"), callback_data: "menu:premium" }, { text: tr(lang, "btn_stars"), callback_data: "menu:stars" }],
+    [{ text: tr(lang, "btn_balance"), callback_data: "menu:balance" }, { text: tr(lang, "btn_topup"), callback_data: "menu:topup" }],
+    [{ text: tr(lang, "btn_profile"), callback_data: "menu:profile" }, { text: tr(lang, "btn_orders"), callback_data: "menu:orders" }],
+    [{ text: tr(lang, "btn_ref"), callback_data: "menu:ref" }, { text: tr(lang, "btn_prices"), callback_data: "menu:prices" }],
+    [{ text: tr(lang, "btn_website"), url: "https://premiumusz.lovable.app" }, { text: tr(lang, "btn_help"), callback_data: "menu:help" }],
+    [{ text: tr(lang, "btn_settings"), callback_data: "menu:settings" }],
   ];
-  if (isAdmin) rows.push([{ text: "🛠 Admin panel", callback_data: "menu:admin" }]);
+  if (isAdmin) rows.push([{ text: tr(lang, "btn_admin"), callback_data: "menu:admin" }]);
   return { inline_keyboard: rows };
 }
 
-function cancelKeyboard() {
-  return { inline_keyboard: [[{ text: "❌ Bekor qilish", callback_data: "menu:cancel" }]] };
+function cancelKeyboard(lang: any = "uz") {
+  return { inline_keyboard: [[{ text: tr(lang, "btn_cancel"), callback_data: "menu:cancel" }]] };
 }
 
-function shareContactKeyboard() {
+function shareContactKeyboard(lang: any = "uz") {
   return {
-    keyboard: [[{ text: "📱 Raqamni ulashish", request_contact: true }]],
+    keyboard: [[{ text: tr(lang, "btn_share"), request_contact: true }]],
     resize_keyboard: true,
     one_time_keyboard: true,
   };
@@ -346,37 +419,38 @@ function getWizard(user: any): Step | null {
 // ============ Helpers ============
 async function showHome(chatId: number, user: any) {
   const adminFlag = await isBotAdmin(user.telegram_id);
-  // Remove any legacy reply keyboard so the UI is fully inline.
+  const lang = L(user.language);
   await tg("sendMessage", {
     chat_id: chatId,
-    text: `👋 Xush kelibsiz, <b>${user.full_name || "do'stim"}</b>!\n\nBalans: <b>${fmt(user.balance)} UZS</b>\n\nQuyidagi menyudan tanlang 👇`,
+    text: tr(lang, "welcome", { name: user.full_name || "", bal: fmt(user.balance) }),
     parse_mode: "HTML",
     reply_markup: { remove_keyboard: true },
   });
   await tg("sendMessage", {
     chat_id: chatId,
-    text: "Asosiy menyu:",
-    reply_markup: mainMenu(adminFlag),
+    text: tr(lang, "main_menu"),
+    reply_markup: mainMenu(adminFlag, lang),
   });
 }
 
-async function showPrices(chatId: number) {
+async function showPrices(chatId: number, user: any) {
+  const lang = L(user?.language);
   const { data: plans } = await supabase.from("plans").select("*").eq("active", true).order("duration_months");
   const { data: pkgs } = await supabase.from("stars_packages").select("*").eq("active", true).order("stars");
   const rate = Number(await getSetting("stars_rate_uzs", 220));
-  const premiumLines = (plans ?? []).map((p: any) => `• ${p.duration_months} oy — <b>${fmt(p.price_uzs)} UZS</b>`).join("\n") || "—";
+  const premiumLines = (plans ?? []).map((p: any) => `• ${p.duration_months} — <b>${fmt(p.price_uzs)} UZS</b>`).join("\n") || "—";
   const starsLines = (pkgs ?? []).map((p: any) => `• ⭐ ${p.stars} — <b>${fmt(p.stars * rate)} UZS</b>`).join("\n") || "—";
   await tg("sendMessage", {
     chat_id: chatId,
     parse_mode: "HTML",
     text:
-      `💱 <b>Narxlar</b>\n\n` +
-      `👑 <b>Premium</b>\n${premiumLines}\n\n` +
-      `⭐ <b>Stars</b> (1⭐ = ${fmt(rate)} UZS)\n${starsLines}`,
+      `${tr(lang, "prices_title")}\n\n` +
+      `${tr(lang, "btn_premium")}\n${premiumLines}\n\n` +
+      `${tr(lang, "btn_stars")} (1⭐ = ${fmt(rate)} UZS)\n${starsLines}`,
     reply_markup: {
       inline_keyboard: [
-        [{ text: "👑 Premium sotib olish", callback_data: "menu:premium" }, { text: "⭐ Stars", callback_data: "menu:stars" }],
-        [{ text: "⬅️ Bosh menyu", callback_data: "menu:home" }],
+        [{ text: tr(lang, "btn_premium"), callback_data: "menu:premium" }, { text: tr(lang, "btn_stars"), callback_data: "menu:stars" }],
+        [{ text: tr(lang, "btn_back"), callback_data: "menu:home" }],
       ],
     },
   });
@@ -384,26 +458,48 @@ async function showPrices(chatId: number) {
 
 
 async function showProfile(chatId: number, user: any) {
+  const lang = L(user.language);
   await tg("sendMessage", {
     chat_id: chatId,
     text:
-      `👤 <b>Profil</b>\n\n` +
-      `Ism: <b>${user.full_name || "-"}</b>\n` +
-      `Telefon: <b>${user.phone || "-"}</b>\n` +
+      `${tr(lang, "profile_title")}\n\n` +
+      `${tr(lang, "f_name")}: <b>${user.full_name || "-"}</b>\n` +
+      `${tr(lang, "f_phone")}: <b>${user.phone || "-"}</b>\n` +
       `Username: ${user.username ? "@" + user.username : "-"}\n` +
-      `Balans: <b>${fmt(user.balance)} UZS</b>\n` +
+      `${tr(lang, "f_balance")}: <b>${fmt(user.balance)} UZS</b>\n` +
+      `🌐 ${LANG_NAMES[lang]}\n` +
       `🆔 <code>${user.telegram_id}</code>`,
     parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [
-        [{ text: "✏️ Telefon o'zgartirish", callback_data: "profile:phone" }],
-        [{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }],
+        [{ text: tr(lang, "edit_phone_btn"), callback_data: "profile:phone" }],
+        [{ text: tr(lang, "btn_settings"), callback_data: "menu:settings" }],
+        [{ text: tr(lang, "topup_btn"), callback_data: "menu:topup" }],
+        [{ text: tr(lang, "btn_back"), callback_data: "menu:home" }],
+      ],
+    },
+  });
+}
+
+async function showSettings(chatId: number, user: any) {
+  const lang = L(user.language);
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: tr(lang, "settings_title", { cur: LANG_NAMES[lang] }),
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: LANG_NAMES.uz, callback_data: "lang:uz" }],
+        [{ text: LANG_NAMES.ru, callback_data: "lang:ru" }],
+        [{ text: LANG_NAMES.en, callback_data: "lang:en" }],
+        [{ text: tr(lang, "btn_back"), callback_data: "menu:home" }],
       ],
     },
   });
 }
 
 async function showOrders(chatId: number, user: any) {
+  const lang = L(user.language);
   const { data: orders } = await supabase
     .from("orders")
     .select("order_number,product_type,duration_months,stars_amount,amount_uzs,status,created_at")
@@ -411,24 +507,25 @@ async function showOrders(chatId: number, user: any) {
     .order("created_at", { ascending: false })
     .limit(10);
   if (!orders?.length) {
-    await tg("sendMessage", { chat_id: chatId, text: "Sizda hali buyurtmalar yo'q." });
+    await tg("sendMessage", { chat_id: chatId, text: tr(lang, "no_orders") });
     return;
   }
   const statusEmoji: Record<string, string> = {
     pending: "🕐", approved: "✅", rejected: "❌", paid: "💎",
   };
   const lines = orders.map((o: any) => {
-    const item = o.product_type === "stars" ? `⭐ ${o.stars_amount}` : `👑 ${o.duration_months}oy`;
+    const item = o.product_type === "stars" ? `⭐ ${o.stars_amount}` : `👑 ${o.duration_months}`;
     return `${statusEmoji[o.status] || "•"} <code>${o.order_number}</code> · ${item} · ${fmt(o.amount_uzs || 0)} UZS`;
   });
   await tg("sendMessage", {
     chat_id: chatId,
-    text: "📋 <b>So'nggi buyurtmalaringiz</b>\n\n" + lines.join("\n"),
+    text: `${tr(lang, "orders_title")}\n\n` + lines.join("\n"),
     parse_mode: "HTML",
   });
 }
 
 async function showReferral(chatId: number, user: any) {
+  const lang = L(user.language);
   const me = await tg("getMe", {});
   const username = me?.result?.username;
   const link = `https://t.me/${username}?start=${user.referral_code}`;
@@ -438,27 +535,24 @@ async function showReferral(chatId: number, user: any) {
   await tg("sendMessage", {
     chat_id: chatId,
     text:
-      `👥 <b>Referal dasturi</b>\n\n` +
-      `Har bir taklif uchun: <b>${fmt(Number(reward))} UZS</b>\n` +
-      `Sizning takliflaringiz: <b>${count ?? 0}</b>\n\n` +
-      `Sizning havolangiz:\n${link}`,
+      `${tr(lang, "ref_title")}\n\n` +
+      `${tr(lang, "ref_per")}: <b>${fmt(Number(reward))} UZS</b>\n` +
+      `${tr(lang, "ref_count")}: <b>${count ?? 0}</b>\n\n` +
+      `${tr(lang, "ref_link")}:\n${link}`,
     parse_mode: "HTML",
     disable_web_page_preview: true,
   });
 }
 
-async function showHelp(chatId: number) {
+async function showHelp(chatId: number, user: any) {
+  const lang = L(user?.language);
   const cardNum = await getSetting("card_number", "");
   await tg("sendMessage", {
     chat_id: chatId,
     text:
-      `ℹ️ <b>Yordam</b>\n\n` +
-      `👑 <b>Premium</b> — 3/6/12 oylik Telegram Premium\n` +
-      `⭐ <b>Stars</b> — minimum 50 dona\n` +
-      `💳 <b>Balansni to'ldirish</b> — karta orqali, chek yuborilgach admin tasdiqlaydi\n` +
-      `👥 <b>Referal</b> — do'stlaringizni taklif qilib bonus oling\n\n` +
-      (cardNum ? `Karta: <code>${cardNum}</code>\n\n` : "") +
-      `Savollar uchun adminga yozing.`,
+      `${tr(lang, "help_title")}\n\n` +
+      `${tr(lang, "help_body")}\n\n` +
+      (cardNum ? `💳 <code>${cardNum}</code>` : ""),
     parse_mode: "HTML",
   });
 }
@@ -784,7 +878,7 @@ Deno.serve(async (req) => {
               `Qancha o'zgartirmoqchisiz? Misol:\n` +
               `<code>+50000</code> — qo'shish\n<code>-20000</code> — ayirish`,
             parse_mode: "HTML",
-            reply_markup: cancelKeyboard(),
+            reply_markup: cancelKeyboard(user.language),
           });
           return new Response("ok");
         }
@@ -795,7 +889,7 @@ Deno.serve(async (req) => {
             chat_id: chatId,
             text: `✉️ <code>${tgId}</code> ga yubormoqchi bo'lgan xabaringizni yozing:`,
             parse_mode: "HTML",
-            reply_markup: cancelKeyboard(),
+            reply_markup: cancelKeyboard(user.language),
           });
           return new Response("ok");
         }
@@ -804,7 +898,7 @@ Deno.serve(async (req) => {
           await tg("sendMessage", {
             chat_id: chatId,
             text: "📢 Barcha foydalanuvchilarga yuboriladigan xabar matnini yozing (HTML qo'llab-quvvatlanadi):",
-            reply_markup: cancelKeyboard(),
+            reply_markup: cancelKeyboard(user.language),
           });
           return new Response("ok");
         }
@@ -813,7 +907,7 @@ Deno.serve(async (req) => {
           await tg("sendMessage", {
             chat_id: chatId,
             text: "✉️ Telegram ID yoki @username ni yuboring:",
-            reply_markup: cancelKeyboard(),
+            reply_markup: cancelKeyboard(user.language),
           });
           return new Response("ok");
         }
@@ -822,7 +916,7 @@ Deno.serve(async (req) => {
           await tg("sendMessage", {
             chat_id: chatId,
             text: "🔍 Telegram ID, @username yoki ism yuboring:",
-            reply_markup: cancelKeyboard(),
+            reply_markup: cancelKeyboard(user.language),
           });
           return new Response("ok");
         }
@@ -842,7 +936,7 @@ Deno.serve(async (req) => {
       if (data === "menu:premium") {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: "👑 <b>Premium tarifini tanlang:</b>",
+          text: tr(user.language, "premium_choose"),
           parse_mode: "HTML",
           reply_markup: await premiumPlansInline(),
         });
@@ -852,7 +946,7 @@ Deno.serve(async (req) => {
         const rate = Number(await getSetting("stars_rate_uzs", 220));
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `⭐ <b>Stars paketini tanlang:</b>\n\nJoriy kurs: <b>1 ⭐ = ${fmt(rate)} UZS</b>`,
+          text: tr(user.language, "stars_choose", { rate: fmt(rate) }),
           parse_mode: "HTML",
           reply_markup: await starsPackagesInline(),
         });
@@ -863,9 +957,9 @@ Deno.serve(async (req) => {
         const min = Number(await getSetting("min_topup_uzs", 10000));
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `💳 <b>Balansni to'ldirish</b>\n\nQancha summa to'ldirmoqchisiz? (UZS)\nMinimum: <b>${fmt(min)} UZS</b>`,
+          text: tr(user.language, "topup_prompt", { min: fmt(min) }),
           parse_mode: "HTML",
-          reply_markup: cancelKeyboard(),
+          reply_markup: cancelKeyboard(user.language),
         });
         return new Response("ok");
       }
@@ -878,20 +972,29 @@ Deno.serve(async (req) => {
       if (data === "menu:balance") {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `💰 Balansingiz: <b>${fmt(user.balance)} UZS</b>`,
+          text: tr(user.language, "bal_only", { bal: fmt(user.balance) }),
           parse_mode: "HTML",
-          reply_markup: { inline_keyboard: [[{ text: "💳 To'ldirish", callback_data: "menu:topup" }], [{ text: "⬅️ Bosh menyu", callback_data: "menu:home" }]] },
+          reply_markup: { inline_keyboard: [[{ text: tr(user.language, "btn_topup"), callback_data: "menu:topup" }], [{ text: tr(user.language, "btn_back"), callback_data: "menu:home" }]] },
         });
         return new Response("ok");
       }
       if (data === "menu:profile") { await showProfile(chatId, user); return new Response("ok"); }
       if (data === "menu:orders")  { await showOrders(chatId, user);  return new Response("ok"); }
       if (data === "menu:ref")     { await showReferral(chatId, user); return new Response("ok"); }
-      if (data === "menu:help")    { await showHelp(chatId);          return new Response("ok"); }
-      if (data === "menu:prices")  { await showPrices(chatId);        return new Response("ok"); }
+      if (data === "menu:help")    { await showHelp(chatId, user);          return new Response("ok"); }
+      if (data === "menu:prices")  { await showPrices(chatId, user);        return new Response("ok"); }
+      if (data === "menu:settings"){ await showSettings(chatId, user);      return new Response("ok"); }
+      if (data.startsWith("lang:")) {
+        const newLang = L(data.split(":")[1]);
+        await supabase.from("bot_users").update({ language: newLang }).eq("id", user.id);
+        const u2 = { ...user, language: newLang };
+        await tg("sendMessage", { chat_id: chatId, text: tr(newLang, "lang_changed") });
+        await showHome(chatId, u2);
+        return new Response("ok");
+      }
       if (data === "menu:admin") {
         if (await isBotAdmin(user.telegram_id)) await showAdminPanel(chatId);
-        else await tg("sendMessage", { chat_id: chatId, text: "❌ Sizda admin huquqi yo'q." });
+        else await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "no_admin") });
         return new Response("ok");
       }
 
@@ -903,21 +1006,18 @@ Deno.serve(async (req) => {
         if (Number(user.balance) < Number(plan.price_uzs)) {
           await tg("sendMessage", {
             chat_id: chatId,
-            text: `❌ Balansda yetarli mablag' yo'q.\n\nKerak: <b>${fmt(plan.price_uzs)} UZS</b>\nSizda: <b>${fmt(user.balance)} UZS</b>`,
+            text: tr(user.language, "no_balance", { need: fmt(plan.price_uzs), have: fmt(user.balance) }),
             parse_mode: "HTML",
-            reply_markup: { inline_keyboard: [[{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }]] },
+            reply_markup: { inline_keyboard: [[{ text: tr(user.language, "topup_btn"), callback_data: "menu:topup" }]] },
           });
           return new Response("ok");
         }
         await setWizard(user.id, { kind: "premium_target", planId });
         await tg("sendMessage", {
           chat_id: chatId,
-          text:
-            `👑 <b>Premium ${plan.duration_months} oy</b> — ${fmt(plan.price_uzs)} UZS\n\n` +
-            `Premium qaysi akkauntga kerak? Telegram username yuboring (masalan @username).\n\n` +
-            `O'zingizga olishni xohlasangiz @${user.username || "username"} yuboring.`,
+          text: tr(user.language, "ask_premium_target", { m: plan.duration_months, p: fmt(plan.price_uzs), me: user.username || "username" }),
           parse_mode: "HTML",
-          reply_markup: cancelKeyboard(),
+          reply_markup: cancelKeyboard(user.language),
         });
         return new Response("ok");
       }
@@ -929,14 +1029,9 @@ Deno.serve(async (req) => {
         await setWizard(user.id, { kind: "stars_amount" });
         await tg("sendMessage", {
           chat_id: chatId,
-          text:
-            `⭐ <b>Stars miqdorini kiriting</b>\n\n` +
-            `Minimum: <b>${min}</b> ⭐\n` +
-            `Kurs: <b>1 ⭐ = ${fmt(rate)} UZS</b>\n` +
-            `Sizdagi balans: <b>${fmt(user.balance)} UZS</b>\n\n` +
-            `Faqat son yuboring (masalan: 120):`,
+          text: tr(user.language, "ask_stars_amount", { min, rate: fmt(rate), bal: fmt(user.balance) }),
           parse_mode: "HTML",
-          reply_markup: cancelKeyboard(),
+          reply_markup: cancelKeyboard(user.language),
         });
         return new Response("ok");
       }
@@ -949,20 +1044,18 @@ Deno.serve(async (req) => {
         if (Number(user.balance) < price) {
           await tg("sendMessage", {
             chat_id: chatId,
-            text: `❌ Balansda yetarli mablag' yo'q.\n\nKerak: <b>${fmt(price)} UZS</b>\nSizda: <b>${fmt(user.balance)} UZS</b>`,
+            text: tr(user.language, "no_balance", { need: fmt(price), have: fmt(user.balance) }),
             parse_mode: "HTML",
-            reply_markup: { inline_keyboard: [[{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }]] },
+            reply_markup: { inline_keyboard: [[{ text: tr(user.language, "topup_btn"), callback_data: "menu:topup" }]] },
           });
           return new Response("ok");
         }
         await setWizard(user.id, { kind: "stars_target", stars });
         await tg("sendMessage", {
           chat_id: chatId,
-          text:
-            `⭐ <b>${stars} Stars</b> — ${fmt(price)} UZS\n\n` +
-            `Stars qaysi akkauntga kerak? Telegram username yuboring (@username).`,
+          text: tr(user.language, "ask_stars_target", { s: stars, p: fmt(price) }),
           parse_mode: "HTML",
-          reply_markup: cancelKeyboard(),
+          reply_markup: cancelKeyboard(user.language),
         });
         return new Response("ok");
       }
@@ -971,8 +1064,8 @@ Deno.serve(async (req) => {
         await setWizard(user.id, { kind: "edit_phone" });
         await tg("sendMessage", {
           chat_id: chatId,
-          text: "📱 Yangi telefon raqamingizni yuboring:",
-          reply_markup: shareContactKeyboard(),
+          text: tr(user.language, "enter_phone"),
+          reply_markup: shareContactKeyboard(user.language),
         });
         return new Response("ok");
       }
@@ -988,7 +1081,7 @@ Deno.serve(async (req) => {
 
     const user = await getOrCreateUser(from, msg.text?.startsWith("/start ") ? msg.text.split(" ")[1] : undefined);
     if (user.banned) {
-      await tg("sendMessage", { chat_id: chatId, text: "Sizning hisobingiz bloklangan." });
+      await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "banned") });
       return new Response("ok");
     }
 
@@ -1000,7 +1093,7 @@ Deno.serve(async (req) => {
       }).eq("id", user.id);
       await clearWizard(user.id);
       const updated = { ...user, phone: msg.contact.phone_number };
-      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon raqami saqlandi!", reply_markup: mainMenu(await isBotAdmin(user.telegram_id)) });
+      await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "phone_saved_ok"), reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language) });
       await showHome(chatId, updated);
       return new Response("ok");
     }
@@ -1008,7 +1101,7 @@ Deno.serve(async (req) => {
     const text: string = msg.text || "";
 
     // Cancel always wins
-    if (text === "❌ Bekor qilish" || text === "/cancel") {
+    if (text === "❌ Bekor qilish" || text === "❌ Отмена" || text === "❌ Cancel" || text === "/cancel") {
       await clearWizard(user.id);
       await showHome(chatId, user);
       return new Response("ok");
@@ -1021,9 +1114,9 @@ Deno.serve(async (req) => {
     if (!user.phone && !text.startsWith("/start")) {
       await tg("sendMessage", {
         chat_id: chatId,
-        text: `👋 <b>Assalomu alaykum, ${user.full_name || from.first_name || "do'stim"}!</b>\n\nAvval telefon raqamingizni yuboring 👇`,
+        text: tr(user.language, "ask_phone", { name: user.full_name || from.first_name || "" }),
         parse_mode: "HTML",
-        reply_markup: shareContactKeyboard(),
+        reply_markup: shareContactKeyboard(user.language),
       });
       return new Response("ok");
     }
@@ -1036,14 +1129,14 @@ Deno.serve(async (req) => {
       if (!USERNAME_RE.test(tgname)) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: "❌ Username noto'g'ri formatda. @ bilan boshlanishi va 5–32 belgi bo'lishi kerak.\nQayta yuboring:",
+          text: tr(user.language, "bad_username"),
         });
         return new Response("ok");
       }
       const { data: plan } = await supabase.from("plans").select("*").eq("id", step.planId).single();
       if (!plan || Number(user.balance) < Number(plan.price_uzs)) {
         await clearWizard(user.id);
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu(await isBotAdmin(user.telegram_id)) });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "no_balance_short"), reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language) });
         return new Response("ok");
       }
       const newBal = Number(user.balance) - Number(plan.price_uzs);
@@ -1065,14 +1158,9 @@ Deno.serve(async (req) => {
       await clearWizard(user.id);
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          `✅ <b>Buyurtma qabul qilindi!</b>\n\n` +
-          `№ <code>${order!.order_number}</code>\n` +
-          `Premium ${plan.duration_months} oy → ${tgname}\n` +
-          `Yangi balans: <b>${fmt(newBal)} UZS</b>\n\n` +
-          `Admin tasdiqlagach Premium faollashtiriladi.`,
+        text: tr(user.language, "order_ok_premium", { n: order!.order_number, m: plan.duration_months, t: tgname, b: fmt(newBal) }),
         parse_mode: "HTML",
-        reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
+        reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language),
       });
       await notifyAdminNewOrder(order, { ...user, balance: newBal });
       return new Response("ok");
@@ -1085,7 +1173,7 @@ Deno.serve(async (req) => {
       if (!Number.isFinite(stars) || stars < min) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `❌ Noto'g'ri miqdor. Minimum <b>${min}</b> ⭐. Qayta yuboring:`,
+          text: tr(user.language, "bad_stars", { min }),
           parse_mode: "HTML",
         });
         return new Response("ok");
@@ -1094,20 +1182,18 @@ Deno.serve(async (req) => {
       if (Number(user.balance) < price) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `❌ Balans yetarli emas.\n\nKerak: <b>${fmt(price)} UZS</b>\nSizda: <b>${fmt(user.balance)} UZS</b>`,
+          text: tr(user.language, "no_balance", { need: fmt(price), have: fmt(user.balance) }),
           parse_mode: "HTML",
-          reply_markup: { inline_keyboard: [[{ text: "💳 Balansni to'ldirish", callback_data: "menu:topup" }]] },
+          reply_markup: { inline_keyboard: [[{ text: tr(user.language, "topup_btn"), callback_data: "menu:topup" }]] },
         });
         return new Response("ok");
       }
       await setWizard(user.id, { kind: "stars_target", stars });
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          `⭐ <b>${stars} Stars</b> — ${fmt(price)} UZS\n\n` +
-          `Stars qaysi akkauntga kerak? Telegram username yuboring (@username).`,
+        text: tr(user.language, "ask_stars_target", { s: stars, p: fmt(price) }),
         parse_mode: "HTML",
-        reply_markup: cancelKeyboard(),
+        reply_markup: cancelKeyboard(user.language),
       });
       return new Response("ok");
     }
@@ -1117,7 +1203,7 @@ Deno.serve(async (req) => {
       if (!USERNAME_RE.test(tgname)) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: "❌ Username noto'g'ri formatda. Qayta yuboring (masalan @username):",
+          text: tr(user.language, "bad_username"),
         });
         return new Response("ok");
       }
@@ -1125,7 +1211,7 @@ Deno.serve(async (req) => {
       const price = step.stars * rate;
       if (Number(user.balance) < price) {
         await clearWizard(user.id);
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans yetarli emas.", reply_markup: mainMenu(await isBotAdmin(user.telegram_id)) });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "no_balance_short"), reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language) });
         return new Response("ok");
       }
       const newBal = Number(user.balance) - price;
@@ -1147,14 +1233,9 @@ Deno.serve(async (req) => {
       await clearWizard(user.id);
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          `✅ <b>Buyurtma qabul qilindi!</b>\n\n` +
-          `№ <code>${order!.order_number}</code>\n` +
-          `⭐ ${step.stars} Stars → ${tgname}\n` +
-          `Yangi balans: <b>${fmt(newBal)} UZS</b>\n\n` +
-          `Admin tasdiqlagach yetkaziladi.`,
+        text: tr(user.language, "order_ok_stars", { n: order!.order_number, s: step.stars, t: tgname, b: fmt(newBal) }),
         parse_mode: "HTML",
-        reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
+        reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language),
       });
       await notifyAdminNewOrder(order, { ...user, balance: newBal });
       return new Response("ok");
@@ -1166,8 +1247,8 @@ Deno.serve(async (req) => {
       if (!amount || amount < min) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: `❌ Summa noto'g'ri yoki minimumdan kam (${fmt(min)} UZS).\nQayta kiriting:`,
-          reply_markup: cancelKeyboard(),
+          text: tr(user.language, "bad_amount", { min: fmt(min) }),
+          reply_markup: cancelKeyboard(user.language),
         });
         return new Response("ok");
       }
@@ -1177,15 +1258,9 @@ Deno.serve(async (req) => {
       const cardBank = await getSetting("card_bank", "");
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          `💳 <b>To'lov ma'lumotlari</b>\n\n` +
-          `Karta: <code>${cardNum}</code>\n` +
-          `Egasi: <b>${cardHolder}</b>\n` +
-          (cardBank ? `Bank: ${cardBank}\n` : "") +
-          `\n💵 Summa: <b>${fmt(amount)} UZS</b>\n\n` +
-          `To'lovni amalga oshirgach <b>chek rasmini yuboring</b> 📸`,
+        text: tr(user.language, "topup_pay_info", { c: cardNum, h: cardHolder, b: cardBank ? `Bank: ${cardBank}` : "", a: fmt(amount) }),
         parse_mode: "HTML",
-        reply_markup: cancelKeyboard(),
+        reply_markup: cancelKeyboard(user.language),
       });
       return new Response("ok");
     }
@@ -1194,9 +1269,9 @@ Deno.serve(async (req) => {
       if (!msg.photo) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text: "❌ Iltimos chek <b>rasm</b>ini yuboring (matn emas).",
+          text: tr(user.language, "need_photo"),
           parse_mode: "HTML",
-          reply_markup: cancelKeyboard(),
+          reply_markup: cancelKeyboard(user.language),
         });
         return new Response("ok");
       }
@@ -1211,8 +1286,6 @@ Deno.serve(async (req) => {
         receiptPath = `bot-topup-${user.id}-${Date.now()}.${ext}`;
         await supabase.storage.from("receipts").upload(receiptPath, bytes, { contentType: "image/jpeg", upsert: false });
       }
-      // Bot top-ups bypass profiles RLS — store as bot transaction (use service role).
-      // Store linked to bot_user via admin_note for traceability; balance sits on bot_users.
       const { data: tx } = await supabase.from("balance_transactions").insert({
         user_id: null,
         bot_user_id: user.id,
@@ -1225,13 +1298,9 @@ Deno.serve(async (req) => {
       await clearWizard(user.id);
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          `✅ Chek qabul qilindi!\n\n` +
-          `Summa: <b>${fmt(step.amount)} UZS</b>\n\n` +
-          `⏳ <b>Iltimos admin tasdiqlashini kuting!</b>\n` +
-          `30 daqiqadan 24 soat ichida to'lovingiz tasdiqlanadi.`,
+        text: tr(user.language, "receipt_ok", { a: fmt(step.amount) }),
         parse_mode: "HTML",
-        reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
+        reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language),
       });
       await notifyAdminTopup(tx, user, fileId);
       return new Response("ok");
@@ -1240,12 +1309,12 @@ Deno.serve(async (req) => {
     if (step?.kind === "edit_phone") {
       const phone = text.trim();
       if (phone.length < 7) {
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Telefon raqami noto'g'ri. Qayta yuboring:" });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "phone_bad") });
         return new Response("ok");
       }
       await supabase.from("bot_users").update({ phone }).eq("id", user.id);
       await clearWizard(user.id);
-      await tg("sendMessage", { chat_id: chatId, text: "✅ Telefon yangilandi!", reply_markup: mainMenu(await isBotAdmin(user.telegram_id)) });
+      await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "phone_saved"), reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language) });
       return new Response("ok");
     }
 
@@ -1287,7 +1356,7 @@ Deno.serve(async (req) => {
         target = data;
       }
       if (!target) {
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Foydalanuvchi topilmadi. Qayta urinib ko'ring:", reply_markup: cancelKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Foydalanuvchi topilmadi. Qayta urinib ko'ring:", reply_markup: cancelKeyboard(user.language) });
         return new Response("ok");
       }
       await setWizard(user.id, { kind: "adm_dm_text", targetTgId: target.telegram_id });
@@ -1295,7 +1364,7 @@ Deno.serve(async (req) => {
         chat_id: chatId,
         text: `✉️ <b>${target.full_name || target.telegram_id}</b> ga yubormoqchi bo'lgan xabaringizni yozing:`,
         parse_mode: "HTML",
-        reply_markup: cancelKeyboard(),
+        reply_markup: cancelKeyboard(user.language),
       });
       return new Response("ok");
     }
@@ -1337,13 +1406,13 @@ Deno.serve(async (req) => {
       const raw = text.trim().replace(/\s/g, "").replace(/,/g, "");
       const delta = Number(raw);
       if (!delta || isNaN(delta)) {
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Noto'g'ri summa. Misol: +50000 yoki -20000", reply_markup: cancelKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Noto'g'ri summa. Misol: +50000 yoki -20000", reply_markup: cancelKeyboard(user.language) });
         return new Response("ok");
       }
       const { data: bu } = await supabase.from("bot_users").select("balance").eq("id", step.targetUserId).single();
       const newBal = Number(bu?.balance || 0) + delta;
       if (newBal < 0) {
-        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans manfiy bo'la olmaydi.", reply_markup: cancelKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: "❌ Balans manfiy bo'la olmaydi.", reply_markup: cancelKeyboard(user.language) });
         return new Response("ok");
       }
       await supabase.from("bot_users").update({ balance: newBal }).eq("id", step.targetUserId);
@@ -1377,11 +1446,9 @@ Deno.serve(async (req) => {
       if (!user.phone) {
         await tg("sendMessage", {
           chat_id: chatId,
-          text:
-            `👋 <b>Assalomu alaykum, ${user.full_name || from.first_name || "do'stim"}!</b>\n\nTelegram Premium va Stars do'koniga xush kelibsiz.\n\n` +
-            "Boshlash uchun telefon raqamingizni yuboring 👇",
+          text: tr(user.language, "start_intro", { name: user.full_name || from.first_name || "" }),
           parse_mode: "HTML",
-          reply_markup: shareContactKeyboard(),
+          reply_markup: shareContactKeyboard(user.language),
         });
       } else {
         await showHome(chatId, user);
@@ -1391,7 +1458,7 @@ Deno.serve(async (req) => {
 
     if (text === "👑 Premium" || text === "/premium") {
       if (!user.phone) {
-        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "ask_phone", { name: user.full_name || "" }), parse_mode: "HTML", reply_markup: shareContactKeyboard(user.language) });
         return new Response("ok");
       }
       await tg("sendMessage", {
@@ -1402,7 +1469,7 @@ Deno.serve(async (req) => {
       });
     } else if (text === "⭐ Stars" || text === "/stars") {
       if (!user.phone) {
-        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "ask_phone", { name: user.full_name || "" }), parse_mode: "HTML", reply_markup: shareContactKeyboard(user.language) });
         return new Response("ok");
       }
       const rate = Number(await getSetting("stars_rate_uzs", 220));
@@ -1421,7 +1488,7 @@ Deno.serve(async (req) => {
       });
     } else if (text === "💳 Balansni to'ldirish" || text === "/topup") {
       if (!user.phone) {
-        await tg("sendMessage", { chat_id: chatId, text: "Avval telefon raqamingizni ulashing.", reply_markup: shareContactKeyboard() });
+        await tg("sendMessage", { chat_id: chatId, text: tr(user.language, "ask_phone", { name: user.full_name || "" }), parse_mode: "HTML", reply_markup: shareContactKeyboard(user.language) });
         return new Response("ok");
       }
       await setWizard(user.id, { kind: "topup_amount" });
@@ -1430,7 +1497,7 @@ Deno.serve(async (req) => {
         chat_id: chatId,
         text: `💳 <b>Balansni to'ldirish</b>\n\nQancha summa to'ldirmoqchisiz? (UZS)\nMinimum: <b>${fmt(min)} UZS</b>`,
         parse_mode: "HTML",
-        reply_markup: cancelKeyboard(),
+        reply_markup: cancelKeyboard(user.language),
       });
     } else if (text === "👤 Profil" || text === "/profile") {
       await showProfile(chatId, user);
@@ -1439,7 +1506,7 @@ Deno.serve(async (req) => {
     } else if (text === "👥 Referal" || text === "/ref") {
       await showReferral(chatId, user);
     } else if (text === "ℹ️ Yordam" || text === "/help") {
-      await showHelp(chatId);
+      await showHelp(chatId, user);
     } else if (text === "🛠 Admin panel" || text === "/admin") {
       if (await isBotAdmin(user.telegram_id)) {
         await showAdminPanel(chatId);
@@ -1450,7 +1517,7 @@ Deno.serve(async (req) => {
       await tg("sendMessage", {
         chat_id: chatId,
         text: "Iltimos quyidagi menyudan tanlang yoki /start bosing.",
-        reply_markup: mainMenu(await isBotAdmin(user.telegram_id)),
+        reply_markup: mainMenu(await isBotAdmin(user.telegram_id), user.language),
       });
     }
 
