@@ -40,6 +40,7 @@ export const SiteHeader = () => {
     { to: "/", label: t("nav.home") },
     { to: "/pricing", label: t("nav.pricing") },
     { to: "/stars", label: t("nav.stars") },
+    { to: "/gifts", label: t("nav.gifts") },
   ];
 
   const signOut = async () => {
