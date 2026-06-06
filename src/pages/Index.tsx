@@ -5,7 +5,7 @@ import { PricingCards } from "@/components/PricingCards";
 import { Seo } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowRight, Bot, ShieldCheck, Zap, Star, Wallet } from "lucide-react";
+import { ArrowRight, Bot, ShieldCheck, Zap, Star, Wallet, Gift, Sparkles, Clock, CreditCard } from "lucide-react";
 
 const Index = () => {
   const { t } = useI18n();
@@ -19,70 +19,126 @@ const Index = () => {
       <SiteHeader />
       <main className="flex-1">
         {/* Hero */}
-        <section className="container py-20 md:py-28">
-          <div className="mx-auto max-w-3xl text-center animate-fade-up">
+        <section className="container py-12 md:py-16">
+          <div className="mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               {t("hero.badge")}
             </span>
-            <h1 className="mt-6 whitespace-pre-line font-display text-5xl font-bold leading-tight md:text-7xl">
-              <span className="text-gradient">{t("hero.title")}</span>
+            <h1 className="mt-6 font-display text-5xl font-extrabold leading-[1.05] md:text-7xl">
+              <span className="text-gradient-rainbow">{t("hero.title")}</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">{t("hero.subtitle")}</p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Button asChild size="lg" className="h-12 rounded-xl bg-gradient-primary px-6 text-base font-semibold text-primary-foreground hover:opacity-90 glow-ring">
-                <Link to="/pricing">
-                  {t("hero.cta")} <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="h-12 rounded-xl border-border/60 bg-secondary/40 px-6 text-base font-semibold backdrop-blur">
-                <Link to="/stars"><Star className="mr-1 h-4 w-4 fill-warning text-warning" /> {t("hero.starsCta")}</Link>
-              </Button>
-            </div>
+            <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground md:text-lg">
+              {t("hero.subtitle")}
+            </p>
           </div>
+        </section>
 
-          {/* Floating cards */}
-          <div className="relative mx-auto mt-20 max-w-4xl">
-            <div className="absolute -inset-x-10 -inset-y-6 -z-10 rounded-[3rem] bg-gradient-primary opacity-20 blur-3xl" />
-            <div className="grid gap-4 md:grid-cols-3">
-              {[
-                { icon: Wallet, t: t("features.safe.title"), d: t("features.safe.desc") },
-                { icon: Zap, t: t("features.fast.title"), d: t("features.fast.desc") },
-                { icon: Bot, t: t("features.support.title"), d: t("features.support.desc") },
-              ].map((f, i) => (
-                <div key={i} className="rounded-2xl glass p-6 animate-float" style={{ animationDelay: `${i * 0.4}s` }}>
-                  <div className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary">
-                    <f.icon className="h-5 w-5 text-primary-foreground" />
-                  </div>
-                  <h3 className="mb-1 font-semibold">{f.t}</h3>
-                  <p className="text-sm text-muted-foreground">{f.d}</p>
+        {/* Bento Grid */}
+        <section className="container pb-12">
+          <div className="grid auto-rows-[minmax(180px,auto)] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Premium - large */}
+            <Link
+              to="/pricing"
+              className="bento bento-violet group sm:col-span-2 lg:row-span-2 flex flex-col justify-between"
+              style={{ boxShadow: "var(--shadow-glow)" }}
+            >
+              <div>
+                <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-background/30 backdrop-blur">
+                  <Sparkles className="h-6 w-6" style={{ color: "hsl(var(--c-violet))" }} />
                 </div>
-              ))}
+                <h2 className="font-display text-3xl font-bold md:text-4xl">{t("buy.premium")}</h2>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                  3, 6 yoki 12 oylik Telegram Premium obunani sotib oling.
+                </p>
+              </div>
+              <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold transition-transform group-hover:translate-x-1">
+                {t("hero.cta")} <ArrowRight className="h-4 w-4" />
+              </div>
+            </Link>
+
+            {/* Stars */}
+            <Link to="/stars" className="bento bento-amber group flex flex-col justify-between">
+              <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-background/30">
+                <Star className="h-5 w-5 fill-warning text-warning" />
+              </div>
+              <div>
+                <h3 className="font-display text-xl font-bold">{t("nav.stars")}</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Joriy kurs bo'yicha</p>
+              </div>
+              <ArrowRight className="mt-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+
+            {/* NFT Gifts - new */}
+            <Link to="/gifts" className="bento bento-magenta group flex flex-col justify-between">
+              <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-background/30">
+                <Gift className="h-5 w-5" style={{ color: "hsl(var(--c-magenta))" }} />
+              </div>
+              <div>
+                <h3 className="font-display text-xl font-bold">NFT Gift</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Telegram NFT to'plami</p>
+              </div>
+              <ArrowRight className="mt-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+
+            {/* Balance */}
+            <Link to="/topup" className="bento bento-cyan group flex items-center gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background/30">
+                <Wallet className="h-5 w-5" style={{ color: "hsl(var(--c-cyan))" }} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-display font-bold">{t("nav.topup")}</h3>
+                <p className="text-xs text-muted-foreground">Karta orqali tez</p>
+              </div>
+            </Link>
+
+            {/* Track */}
+            <Link to="/track" className="bento bento-mint group flex items-center gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background/30">
+                <Clock className="h-5 w-5" style={{ color: "hsl(var(--c-mint))" }} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-display font-bold">{t("nav.track")}</h3>
+                <p className="text-xs text-muted-foreground">Buyurtma holati</p>
+              </div>
+            </Link>
+
+            {/* Feature: fast */}
+            <div className="bento bento-coral">
+              <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-background/30">
+                <Zap className="h-5 w-5" style={{ color: "hsl(var(--c-coral))" }} />
+              </div>
+              <h3 className="font-display font-bold">{t("features.fast.title")}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{t("features.fast.desc")}</p>
+            </div>
+
+            {/* Feature: secure */}
+            <div className="bento">
+              <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-background/30">
+                <ShieldCheck className="h-5 w-5" style={{ color: "hsl(var(--c-mint))" }} />
+              </div>
+              <h3 className="font-display font-bold">{t("features.safe.title")}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{t("features.safe.desc")}</p>
+            </div>
+
+            {/* Feature: support */}
+            <div className="bento bento-violet">
+              <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-background/30">
+                <Bot className="h-5 w-5" style={{ color: "hsl(var(--c-violet))" }} />
+              </div>
+              <h3 className="font-display font-bold">{t("features.support.title")}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{t("features.support.desc")}</p>
             </div>
           </div>
         </section>
 
         {/* Pricing */}
-        <section className="container py-16">
-          <div className="mb-10 text-center">
-            <h2 className="font-display text-4xl font-bold md:text-5xl">{t("pricing.title")}</h2>
+        <section className="container py-12">
+          <div className="mb-8 text-center">
+            <h2 className="font-display text-3xl font-bold md:text-5xl">{t("pricing.title")}</h2>
             <p className="mt-3 text-muted-foreground">{t("pricing.subtitle")}</p>
           </div>
           <PricingCards />
-        </section>
-
-        {/* Stars CTA */}
-        <section className="container py-16">
-          <div className="rounded-3xl glass p-10 text-center">
-            <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-warning/15">
-              <Star className="h-8 w-8 fill-warning text-warning" />
-            </div>
-            <h2 className="font-display text-4xl font-bold">{t("stars.title")}</h2>
-            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">{t("stars.subtitle")}</p>
-            <Button asChild className="mt-6 h-12 rounded-xl bg-gradient-primary px-6 font-semibold text-primary-foreground">
-              <Link to="/stars">{t("hero.starsCta")} <ArrowRight className="ml-1 h-4 w-4" /></Link>
-            </Button>
-          </div>
         </section>
       </main>
       <SiteFooter />
