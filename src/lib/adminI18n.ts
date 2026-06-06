@@ -97,6 +97,7 @@ const uzDict = {
     promos: "Promokodlar",
     support: "Qo'llab-quvvatlash",
     blog: "Blog",
+    nftGifts: "NFT Gift",
   };
 
 const ruDict = {
@@ -193,6 +194,7 @@ const ruDict = {
     promos: "Промокоды",
     support: "Поддержка",
     blog: "Блог",
+    nftGifts: "NFT Gift",
   };
 
 const adminDict: Record<AdminLang, Record<string, string>> = { uz: uzDict, ru: ruDict, en: ruDict };
