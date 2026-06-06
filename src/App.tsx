@@ -11,6 +11,7 @@ import Auth from "./pages/Auth.tsx";
 import Profile from "./pages/Profile.tsx";
 import TopUp from "./pages/TopUp.tsx";
 import BuyPremium from "./pages/BuyPremium.tsx";
+import NftGifts from "./pages/NftGifts.tsx";
 
 import NotFound from "./pages/NotFound.tsx";
 import AdminLogin from "./pages/admin/AdminLogin.tsx";
@@ -26,6 +27,7 @@ import AdminBroadcast from "./pages/admin/AdminBroadcast.tsx";
 import AdminPromos from "./pages/admin/AdminPromos.tsx";
 import AdminSupport from "./pages/admin/AdminSupport.tsx";
 import AdminBlog from "./pages/admin/AdminBlog.tsx";
+import AdminNftGifts from "./pages/admin/AdminNftGifts.tsx";
 import Blog from "./pages/Blog.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
 import Faq from "./pages/Faq.tsx";
@@ -69,6 +71,7 @@ const App = () => (
               <Route path="/topup" element={<TopUp />} />
               <Route path="/buy/premium" element={<BuyPremium />} />
               <Route path="/buy/stars" element={<Stars />} />
+              <Route path="/gifts" element={<NftGifts />} />
               <Route path="/track" element={<Track />} />
               <Route path="/faq" element={<Faq />} />
               <Route path="/terms" element={<Terms />} />
@@ -86,6 +89,7 @@ const App = () => (
                 <Route path="promos" element={<AdminPromos />} />
                 <Route path="support" element={<AdminSupport />} />
                 <Route path="blog" element={<AdminBlog />} />
+                <Route path="nft-gifts" element={<AdminNftGifts />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="broadcast" element={<AdminBroadcast />} />
               </Route>
