@@ -196,6 +196,54 @@ export type Database = {
         }
         Relationships: []
       }
+      nft_gifts: {
+        Row: {
+          badge: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          price: number | null
+          price_ton: number | null
+          sort_order: number
+          telegram_link: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          badge?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          price?: number | null
+          price_ton?: number | null
+          sort_order?: number
+          telegram_link?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          badge?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          price?: number | null
+          price_ton?: number | null
+          sort_order?: number
+          telegram_link?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           admin_note: string | null
