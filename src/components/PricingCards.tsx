@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { Link } from "react-router-dom";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Crown } from "lucide-react";
 
 interface Plan {
   id: string;
@@ -27,39 +27,46 @@ export const PricingCards = ({ compact = false }: { compact?: boolean }) => {
   const popular = plans.find((p) => p.duration_months === 6)?.id ?? plans.find((p) => p.duration_months === 3)?.id;
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
+    <div className="grid gap-5 md:grid-cols-3">
       {plans.map((p) => {
         const isPopular = p.id === popular;
         return (
           <div
             key={p.id}
-            className={`relative flex flex-col rounded-3xl glass p-7 transition-all hover:-translate-y-1 hover:shadow-glow ${
-              isPopular ? "border-primary/40 ring-1 ring-primary/30" : ""
+            className={`surface surface-hover relative flex flex-col p-7 ${
+              isPopular ? "ring-2 ring-primary shadow-glow" : ""
             }`}
           >
             {isPopular && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+              <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
                 {t("pricing.popular")}
               </span>
             )}
-            <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h3 className="font-display text-xl font-bold">
+            <div className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-primary" />
+              <h3 className="font-display text-lg font-bold">
                 {p.duration_months} {p.duration_months === 1 ? t("pricing.month") : t("pricing.months")}
               </h3>
             </div>
-            <div className="mb-6 text-4xl font-display font-bold">
-              {Number(p.price_uzs).toLocaleString("ru-RU")} <span className="text-base font-normal text-muted-foreground">UZS</span>
+            <div className="mt-4 font-display text-4xl font-bold tracking-tight">
+              {Number(p.price_uzs).toLocaleString("ru-RU")}
+              <span className="ml-1 text-base font-normal text-muted-foreground">UZS</span>
             </div>
             {!compact && (
-              <ul className="mb-6 space-y-2 text-sm">
-                <li className="flex gap-2"><Check className="h-4 w-4 text-success" /> Premium badge</li>
-                <li className="flex gap-2"><Check className="h-4 w-4 text-success" /> 4 GB upload</li>
-                <li className="flex gap-2"><Check className="h-4 w-4 text-success" /> Faster downloads</li>
-                <li className="flex gap-2"><Check className="h-4 w-4 text-success" /> Voice-to-text</li>
+              <ul className="mt-6 space-y-2.5 text-sm">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Premium badge</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> 4 GB fayl yuklash</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Tezroq yuklash</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Voice-to-text</li>
               </ul>
             )}
-            <Button asChild className="mt-auto h-12 rounded-xl bg-gradient-primary font-semibold text-primary-foreground hover:opacity-90">
+            <Button
+              asChild
+              className={`mt-7 h-11 w-full rounded-xl font-semibold ${
+                isPopular ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
+              }`}
+              variant={isPopular ? "default" : "outline"}
+            >
               <Link to={`/buy/premium?plan=${p.id}`}>{t("pricing.choose")}</Link>
             </Button>
           </div>
