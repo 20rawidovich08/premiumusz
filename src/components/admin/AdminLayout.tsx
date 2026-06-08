@@ -15,7 +15,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const groups = [
+type NavItem = { to: string; end?: boolean; icon: any; labelKey: string };
+type NavGroup = { label: string; items: NavItem[] };
+
+const groups: NavGroup[] = [
   {
     label: "Asosiy",
     items: [
@@ -48,7 +51,7 @@ const groups = [
       { to: "/admin/settings", icon: Settings, labelKey: "settings" },
     ],
   },
-] as const;
+];
 
 const allItems = groups.flatMap(g => g.items);
 
