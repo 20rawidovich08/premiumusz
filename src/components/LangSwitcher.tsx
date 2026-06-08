@@ -1,5 +1,4 @@
 import { useI18n, type Lang } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
 
 const langs: { code: Lang; label: string }[] = [
   { code: "uz", label: "UZ" },
@@ -10,17 +9,19 @@ const langs: { code: Lang; label: string }[] = [
 export const LangSwitcher = () => {
   const { lang, setLang } = useI18n();
   return (
-    <div className="inline-flex items-center gap-1 rounded-full glass p-1">
+    <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 shadow-xs">
       {langs.map((l) => (
-        <Button
+        <button
           key={l.code}
-          size="sm"
-          variant={lang === l.code ? "default" : "ghost"}
-          className={`h-7 rounded-full px-3 text-xs font-semibold ${lang === l.code ? "" : "text-muted-foreground"}`}
           onClick={() => setLang(l.code)}
+          className={`rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
+            lang === l.code
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
         >
           {l.label}
-        </Button>
+        </button>
       ))}
     </div>
   );

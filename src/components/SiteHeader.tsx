@@ -3,7 +3,7 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Wallet, User as UserIcon, LogOut, Menu, LifeBuoy } from "lucide-react";
+import { Send, Wallet, User as UserIcon, LogOut, Menu, LifeBuoy, Bell } from "lucide-react";
 import { openSupportChat } from "@/components/SupportChat";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -38,9 +38,10 @@ export const SiteHeader = () => {
 
   const navItems = [
     { to: "/", label: t("nav.home") },
-    { to: "/pricing", label: t("nav.pricing") },
     { to: "/stars", label: t("nav.stars") },
-    { to: "/gifts", label: t("nav.gifts") },
+    { to: "/pricing", label: t("nav.pricing") },
+    { to: "/topup", label: "To'lovlar" },
+    { to: "/faq", label: "Yordam" },
   ];
 
   const signOut = async () => {
@@ -49,24 +50,31 @@ export const SiteHeader = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full">
-      <div className="container flex items-center justify-between gap-2 py-2.5 sm:py-4">
-        <Link to="/" className="flex items-center gap-2 font-display text-base font-bold sm:text-lg">
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary glow-ring sm:h-9 sm:w-9">
-            <Sparkles className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
+    <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-xl">
+      <div className="container flex h-16 items-center justify-between gap-2">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Send className="h-4 w-4 -rotate-45" />
           </span>
-          <span className="text-gradient">Premium UZ</span>
+          <div className="leading-tight">
+            <div className="font-display text-[15px] font-bold">Premium <span className="text-primary">Usz</span></div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Store</div>
+          </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 rounded-full glass px-2 py-1 md:flex">
+        {/* Nav */}
+        <nav className="hidden items-center gap-0.5 md:flex">
           {navItems.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
               end={n.to === "/"}
               className={({ isActive }) =>
-                `rounded-full px-4 py-2 text-sm transition-colors ${
-                  isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                `rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`
               }
             >
@@ -75,20 +83,28 @@ export const SiteHeader = () => {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <LangSwitcher />
+        {/* Right */}
+        <div className="flex items-center gap-1.5">
+          <div className="hidden sm:block"><LangSwitcher /></div>
+
           {!loading && user ? (
             <>
               <Link
                 to="/topup"
-                className="inline-flex items-center gap-1 rounded-full bg-secondary/60 px-2.5 py-1 text-xs font-medium hover:bg-secondary sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-sm"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold shadow-xs hover:border-primary/50 hover:text-primary"
               >
-                <Wallet className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
-                {balance.toLocaleString("ru-RU")} <span className="text-[10px] text-muted-foreground sm:text-xs">UZS</span>
+                <Wallet className="h-4 w-4 text-primary" />
+                <span>{balance.toLocaleString("ru-RU")}</span>
+                <span className="text-[10px] font-medium text-muted-foreground">UZS</span>
               </Link>
+
+              <Button variant="ghost" size="icon" className="hidden h-9 w-9 sm:inline-flex" aria-label="Bildirishnomalar">
+                <Bell className="h-4 w-4" />
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full" aria-label="Foydalanuvchi menyusi">
+                  <Button variant="outline" size="icon" className="h-9 w-9 rounded-full border-border" aria-label="Profil">
                     <UserIcon className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -112,22 +128,24 @@ export const SiteHeader = () => {
               </DropdownMenu>
             </>
           ) : !loading ? (
-            <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground">
+            <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Link to="/auth">{t("nav.login")}</Link>
             </Button>
           ) : null}
 
-          {/* mobile nav */}
+          {/* mobile menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden" aria-label="Asosiy menyu">
+              <Button variant="outline" size="icon" className="h-9 w-9 md:hidden" aria-label="Menyu">
                 <Menu className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48">
               {navItems.map((n) => (
                 <DropdownMenuItem key={n.to} onClick={() => navigate(n.to)}>{n.label}</DropdownMenuItem>
               ))}
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5"><LangSwitcher /></div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

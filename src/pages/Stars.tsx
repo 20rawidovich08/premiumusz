@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Star, TrendingUp, Sparkles, Wallet, CheckCircle2 } from "lucide-react";
+import { Star, Wallet, CheckCircle2, TrendingUp, Sparkles, Minus, Plus } from "lucide-react";
 import { PromoInput } from "@/components/PromoInput";
 
 interface Pkg { id: string; stars: number; }
 
-const QUICK = [100, 250, 500, 1000, 2500, 5000];
+const QUICK = [50, 100, 250, 500, 1000, 2500];
 
 const Stars = () => {
   const { user } = useAuth();
@@ -49,11 +49,7 @@ const Stars = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("balance,telegram_username")
-      .eq("id", user.id)
-      .maybeSingle()
+    supabase.from("profiles").select("balance,telegram_username").eq("id", user.id).maybeSingle()
       .then(({ data }) => {
         setBalance(Number(data?.balance ?? 0));
         if (data?.telegram_username) setTg(data.telegram_username);
@@ -90,13 +86,13 @@ const Stars = () => {
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
         <main className="flex-1 container py-20">
-          <div className="mx-auto max-w-md rounded-3xl glass p-8 text-center animate-fade-up">
-            <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-success/20">
+          <div className="surface-lg mx-auto max-w-md p-8 text-center">
+            <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-success/10">
               <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
             <h1 className="font-display text-2xl font-bold">{t("buy.success")}</h1>
-            <div className="mt-3 font-mono text-xl text-primary">{done.num}</div>
-            <Button className="mt-6" onClick={() => navigate("/profile")}>{t("nav.profile")}</Button>
+            <div className="mt-3 font-mono text-lg text-primary">{done.num}</div>
+            <Button className="mt-6 bg-primary text-primary-foreground" onClick={() => navigate("/profile")}>{t("nav.profile")}</Button>
           </div>
         </main>
         <SiteFooter />
@@ -106,170 +102,150 @@ const Stars = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Seo
-        title="Telegram Stars xarid qilish — Premium UZ"
-        description="Telegram Stars'ni 50 dan boshlab UZS karta orqali xarid qiling. Tez yetkazib berish va arzon kurs."
-        path="/stars"
-      />
+      <Seo title="Telegram Stars xarid qilish — Premium Usz" description="Telegram Stars'ni 50 dan boshlab UZS karta orqali xarid qiling." path="/stars" />
       <SiteHeader />
-      <main className="flex-1 container py-16">
-        <div className="text-center mx-auto max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full bg-warning/15 px-4 py-1.5 text-xs font-medium text-warning">
-            <Star className="h-3.5 w-3.5 fill-warning" /> Telegram Stars
-          </div>
-          <h1 className="mt-4 font-display text-5xl font-bold">{t("stars.title")}</h1>
-          <p className="mt-3 text-muted-foreground">{t("stars.subtitle")}</p>
-          <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-secondary/60 px-4 py-2 text-sm">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            {t("stars.rate")}: <span className="font-semibold">1 ⭐ = {rate} UZS</span>
-          </div>
+      <main className="flex-1 container py-10 md:py-14">
+        <div className="mx-auto max-w-2xl text-center md:text-left md:max-w-none">
+          <span className="inline-flex items-center gap-2 rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">
+            <Star className="h-3.5 w-3.5 fill-current" /> Telegram Stars
+          </span>
+          <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">Telegram Stars xarid qiling</h1>
+          <p className="mt-2 text-muted-foreground">Joriy kurs: <span className="font-semibold text-foreground">1 ⭐ = {rate} UZS</span></p>
         </div>
 
-        {/* Main purchase card */}
-        <div className="mt-10 mx-auto max-w-3xl">
-          <div className="relative overflow-hidden rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-warning/10 p-7 shadow-glow">
-            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
-            <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-warning/20 blur-3xl" />
-            <div className="relative space-y-5">
-              <div className="flex items-center gap-2 text-primary">
-                <Sparkles className="h-5 w-5" />
-                <span className="text-sm font-semibold uppercase tracking-wider">
-                  {t("stars.customAmount") || "Istalgan miqdor"}
-                </span>
-              </div>
-
-              {user && (
-                <div className="flex items-center justify-between rounded-xl bg-secondary/60 p-4">
-                  <div className="flex items-center gap-2"><Wallet className="h-4 w-4 text-primary" /> {t("buy.balance")}</div>
-                  <div className="font-display text-xl font-bold text-gradient">{balance.toLocaleString("ru-RU")} UZS</div>
-                </div>
-              )}
-
-              <div>
-                <Label>{t("buy.amountStars")} *</Label>
-                <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-border/60 bg-background/60 p-2 backdrop-blur">
-                  <Star className="ml-2 h-5 w-5 fill-warning text-warning" />
-                  <Input
-                    type="number"
-                    min={minStars}
-                    step={1}
-                    value={custom}
-                    onChange={(e) => setCustom(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                    placeholder={`${minStars}+`}
-                    className="border-0 bg-transparent text-2xl font-bold focus-visible:ring-0"
-                  />
-                  <span className="pr-3 text-sm text-muted-foreground">⭐</span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {QUICK.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => setCustom(q)}
-                      className={`rounded-lg border px-3 py-1 text-xs transition-all ${
-                        custom === q
-                          ? "border-primary bg-primary/15 text-primary"
-                          : "border-border/60 hover:border-primary/50"
-                      }`}
-                    >
-                      {q.toLocaleString("ru-RU")} ⭐
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("stars.min")}: {minStars} ⭐
-                </p>
-              </div>
-
-              <div>
-                <Label>{t("buy.target")} *</Label>
-                <Input
-                  value={tg}
-                  onChange={(e) => setTg(e.target.value)}
-                  placeholder="@username"
-                  className="mt-1.5"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">{t("buy.targetHelp")}</p>
-              </div>
-
-              {user && valid && (
-                <PromoInput amount={customPrice} type="stars" onApply={setPromo} />
-              )}
-
-              {user && insufficient && valid && (
-                <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-4 text-sm">
-                  {t("buy.insufficient")} <Link to="/topup" className="ml-2 underline">{t("nav.topup")}</Link>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-3 border-t border-border/50 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-xs text-muted-foreground">{t("buy.price")}</div>
-                  <div className="font-display text-3xl font-bold text-gradient">
-                    {finalPrice.toLocaleString("ru-RU")}
-                    <span className="ml-1 text-sm font-normal text-muted-foreground">UZS</span>
-                  </div>
-                  {promo && (
-                    <div className="text-xs text-muted-foreground line-through">{customPrice.toLocaleString("ru-RU")} UZS</div>
-                  )}
-                </div>
-                <Button
-                  disabled={busy || !valid || (!!user && insufficient)}
-                  onClick={submit}
-                  className="h-12 rounded-xl bg-gradient-primary px-6 text-base font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                >
-                  {busy ? t("common.loading") : user ? t("buy.confirm") : t("nav.login")}
-                </Button>
-              </div>
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+          {/* LEFT — package cards */}
+          <div className="surface p-6">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="font-display text-lg font-bold">Paketni tanlang</h2>
             </div>
-          </div>
-        </div>
 
-        {/* Preset packages — quick fill */}
-        {packages.length > 0 && (
-          <>
-            <div className="mt-12 text-center">
-              <h3 className="font-display text-2xl font-bold">{t("stars.popularPackages") || "Mashhur paketlar"}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("stars.popularHint") || "Tanlasangiz miqdor avtomatik to'ldiriladi"}
-              </p>
-            </div>
-            <div className="mt-6 grid gap-5 md:grid-cols-3 lg:grid-cols-3">
-              {packages.map((p) => {
-                const popular = p.stars === 500;
-                const selected = custom === p.stars;
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {QUICK.map((q) => {
+                const selected = custom === q;
                 return (
                   <button
-                    key={p.id}
+                    key={q}
                     type="button"
-                    onClick={() => {
-                      setCustom(p.stars);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className={`relative rounded-3xl glass p-7 text-left transition-all hover:-translate-y-1 hover:shadow-glow ${
-                      selected ? "border-primary ring-2 ring-primary/40" : popular ? "border-primary/40 ring-1 ring-primary/30" : ""
+                    onClick={() => setCustom(q)}
+                    className={`group rounded-xl border p-4 text-center transition-all ${
+                      selected
+                        ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                        : "border-border bg-card hover:border-primary/50"
                     }`}
                   >
-                    {popular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                        {t("pricing.popular")}
-                      </span>
-                    )}
-                    <div className="flex items-center justify-center gap-2 text-warning">
-                      <Star className="h-7 w-7 fill-warning" />
-                      <div className="font-display text-4xl font-bold text-foreground">{p.stars}</div>
+                    <div className="mx-auto grid h-10 w-10 place-items-center rounded-lg bg-warning/10">
+                      <Star className="h-5 w-5 fill-warning text-warning" />
                     </div>
-                    <div className="mt-4 text-center">
-                      <div className="font-display text-3xl font-bold text-gradient">
-                        {(p.stars * rate).toLocaleString("ru-RU")} <span className="text-sm font-normal text-muted-foreground">UZS</span>
-                      </div>
-                    </div>
+                    <div className="mt-3 font-display text-xl font-bold">{q.toLocaleString("ru-RU")}</div>
+                    <div className="mt-1 text-xs font-medium text-primary">{(q * rate).toLocaleString("ru-RU")} UZS</div>
                   </button>
                 );
               })}
             </div>
-          </>
-        )}
+
+            {packages.length > 0 && (
+              <>
+                <div className="mt-6 border-t border-border pt-5">
+                  <h3 className="text-sm font-semibold text-muted-foreground">Boshqa paketlar</h3>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {packages.filter(p => !QUICK.includes(p.stars)).map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setCustom(p.stars)}
+                        className={`rounded-lg border p-3 text-center text-sm transition-all ${
+                          custom === p.stars ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
+                        }`}
+                      >
+                        <span className="font-display font-bold">{p.stars}</span> <span className="text-muted-foreground">⭐</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* RIGHT — purchase panel */}
+          <div className="surface-lg p-6 lg:sticky lg:top-24 lg:self-start">
+            {user && (
+              <div className="mb-5 flex items-center justify-between rounded-xl bg-secondary p-4">
+                <div className="inline-flex items-center gap-2 text-sm">
+                  <Wallet className="h-4 w-4 text-primary" /> Balans
+                </div>
+                <div className="font-display text-base font-bold">{balance.toLocaleString("ru-RU")} UZS</div>
+              </div>
+            )}
+
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Stars miqdori</Label>
+            <div className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-card p-1.5">
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => setCustom(Math.max(minStars, custom - 50))}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Input
+                type="number"
+                min={minStars}
+                value={custom}
+                onChange={(e) => setCustom(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                className="border-0 bg-transparent text-center text-xl font-bold tracking-tight focus-visible:ring-0"
+              />
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => setCustom(custom + 50)}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">Minimum: {minStars} ⭐</p>
+
+            <div className="mt-4">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Telegram username</Label>
+              <Input value={tg} onChange={(e) => setTg(e.target.value)} placeholder="@username" className="mt-2" />
+            </div>
+
+            {user && valid && (
+              <div className="mt-4">
+                <PromoInput amount={customPrice} type="stars" onApply={setPromo} />
+              </div>
+            )}
+
+            {/* Live price preview */}
+            <div className="mt-5 rounded-xl border border-border bg-secondary/40 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Miqdor</span>
+                <span className="font-semibold">{custom.toLocaleString("ru-RU")} ⭐</span>
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Kurs</span>
+                <span className="font-semibold">{rate} UZS / ⭐</span>
+              </div>
+              {promo && (
+                <div className="mt-1.5 flex items-center justify-between text-sm text-success">
+                  <span>Promo: {promo.code}</span>
+                  <span className="font-semibold">−{promo.discount.toLocaleString("ru-RU")} UZS</span>
+                </div>
+              )}
+              <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
+                <span className="text-xs font-semibold uppercase text-muted-foreground">Jami</span>
+                <div className="font-display text-2xl font-bold text-primary">
+                  {finalPrice.toLocaleString("ru-RU")} <span className="text-sm font-normal text-muted-foreground">UZS</span>
+                </div>
+              </div>
+            </div>
+
+            {user && insufficient && valid && (
+              <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                {t("buy.insufficient")} <Link to="/topup" className="font-semibold text-primary hover:underline">To'ldirish</Link>
+              </div>
+            )}
+
+            <Button
+              disabled={busy || !valid || (!!user && insufficient)}
+              onClick={submit}
+              className="mt-5 h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {busy ? t("common.loading") : user ? "Sotib olish" : t("nav.login")}
+            </Button>
+          </div>
+        </div>
       </main>
       <SiteFooter />
     </div>
