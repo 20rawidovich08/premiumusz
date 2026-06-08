@@ -15,7 +15,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type NavItem = { to: string; end?: boolean; icon: any; labelKey: string };
+type NavItem = { to: string; end?: boolean; icon: any; labelKey: any };
 type NavGroup = { label: string; items: NavItem[] };
 
 const groups: NavGroup[] = [
