@@ -40,6 +40,7 @@ export const SiteHeader = () => {
     { to: "/", label: t("nav.home") },
     { to: "/stars", label: t("nav.stars") },
     { to: "/pricing", label: t("nav.pricing") },
+    { to: "/gifts", label: "NFT Gift" },
     { to: "/topup", label: "To'lovlar" },
     { to: "/faq", label: "Yordam" },
   ];
