@@ -8,8 +8,10 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowRight, ShieldCheck, Zap, Star, Crown, Users, ShoppingBag,
-  Clock, LifeBuoy, CheckCircle2, Sparkles, MessageCircle, TrendingUp,
+  Clock, LifeBuoy, CheckCircle2, Sparkles, MessageCircle, TrendingUp, Gift, ExternalLink,
 } from "lucide-react";
+
+interface NftGift { id: string; title: string; image_url: string | null; price: number | null; price_ton: number | null; telegram_link: string | null; badge: string | null; }
 
 interface Plan { id: string; duration_months: number; price_uzs: number; }
 
