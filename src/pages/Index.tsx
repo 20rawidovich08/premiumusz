@@ -227,6 +227,62 @@ const Index = () => {
           </div>
         </section>
 
+        {/* NFT GIFT */}
+        <section className="container mt-16">
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <Gift className="h-3.5 w-3.5" /> NFT Collection
+              </div>
+              <h2 className="mt-2 font-display text-2xl font-bold md:text-3xl">NFT Gift marketplace</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Telegram NFT sovg'alarining noyob to'plami</p>
+            </div>
+            <Link to="/gifts" className="hidden text-sm font-medium text-primary hover:underline sm:inline-flex">Barchasi →</Link>
+          </div>
+          {gifts.length === 0 ? (
+            <div className="mt-6 surface p-10 text-center">
+              <Gift className="mx-auto h-10 w-10 text-muted-foreground" />
+              <p className="mt-3 text-sm text-muted-foreground">Tez orada NFT sovg'alar qo'shiladi</p>
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {gifts.map((g) => (
+                <div key={g.id} className="surface surface-hover group overflow-hidden p-4">
+                  <div className="relative aspect-square overflow-hidden rounded-xl bg-secondary/40">
+                    {g.image_url ? (
+                      <img src={g.image_url} alt={g.title} loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                      <div className="grid h-full w-full place-items-center"><Gift className="h-12 w-12 text-muted-foreground" /></div>
+                    )}
+                    {g.badge && (
+                      <span className="absolute right-2 top-2 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
+                        {g.badge}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-3 line-clamp-1 font-display text-base font-bold">{g.title}</h3>
+                  <div className="mt-2 flex items-end justify-between">
+                    <div>
+                      {g.price_ton != null && <div className="text-[11px] text-muted-foreground">{g.price_ton} TON</div>}
+                      {g.price != null && (
+                        <div className="font-display text-sm font-bold text-primary">
+                          {Number(g.price).toLocaleString("ru-RU")} <span className="text-[10px] text-muted-foreground">UZS</span>
+                        </div>
+                      )}
+                    </div>
+                    {g.telegram_link && (
+                      <Button asChild size="sm" variant="outline" className="h-7 rounded-full px-2 text-xs">
+                        <a href={g.telegram_link} target="_blank" rel="noreferrer">Xarid <ExternalLink className="ml-1 h-3 w-3" /></a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* WHY US */}
         <section className="container mt-16">
           <div className="surface-lg p-8 md:p-10">
