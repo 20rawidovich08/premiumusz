@@ -80,7 +80,9 @@ const Order = () => {
     setSubmitting(true);
     try {
       const ext = receipt.name.split(".").pop() || "jpg";
-      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { data: { user } } = await supabase.auth.getUser();
+      const prefix = user?.id ?? "guest";
+      const path = `${prefix}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error: upErr } = await supabase.storage.from("receipts").upload(path, receipt, {
         contentType: receipt.type,
         upsert: false,
