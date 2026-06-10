@@ -60,7 +60,7 @@ const TopUp = () => {
     setBusy(true);
     try {
       const ext = receipt.name.split(".").pop() || "jpg";
-      const path = `topup/${user.id}/${Date.now()}.${ext}`;
+      const path = `${user.id}/topup/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("receipts").upload(path, receipt, {
         contentType: receipt.type, upsert: false,
       });
