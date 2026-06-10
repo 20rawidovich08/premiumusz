@@ -22,6 +22,7 @@ const Index = () => {
   const [rate, setRate] = useState(220);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [recent, setRecent] = useState<any[]>([]);
+  const [gifts, setGifts] = useState<NftGift[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -29,10 +30,13 @@ const Index = () => {
       supabase.from("plans").select("id,duration_months,price_uzs").eq("active", true).order("duration_months"),
       supabase.from("orders").select("order_number,product_type,duration_months,stars_amount,amount_uzs,status,created_at")
         .eq("status", "approved").order("created_at", { ascending: false }).limit(5),
-    ]).then(([s, p, o]) => {
+      supabase.from("nft_gifts").select("id,title,image_url,price,price_ton,telegram_link,badge")
+        .eq("is_active", true).order("sort_order").limit(4),
+    ]).then(([s, p, o, g]) => {
       if (s.data?.value) setRate(Number(s.data.value));
       setPlans((p.data as Plan[]) ?? []);
       setRecent(o.data ?? []);
+      setGifts((g.data as NftGift[]) ?? []);
     });
   }, []);
 
