@@ -5,6 +5,9 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { Seo } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { starsPurchaseUrl } from "@/lib/purchase-selection";
+import { parseStoreStats } from "@/lib/store-stats";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowRight, ShieldCheck, Zap, Star, Crown, Users, ShoppingBag,
@@ -18,7 +21,18 @@ interface Plan { id: string; duration_months: number; price_uzs: number; }
 const STAR_PACKS = [50, 100, 250, 500, 1000];
 
 const Index = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const { data: stats, isPending: statsLoading, isError: statsError, refetch: refreshStats } = useQuery({
+    queryKey: ["public-store-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("public_store_stats");
+      if (error) throw error;
+      return parseStoreStats(data);
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
   const [rate, setRate] = useState(220);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [recent, setRecent] = useState<any[]>([]);
@@ -43,8 +57,8 @@ const Index = () => {
   return (
     <div className="flex min-h-screen flex-col">
       <Seo
-        title="Premium Usz Store — Telegram Stars va Premium"
-        description="O'zbekistondagi eng tezkor Telegram Stars va Premium marketplace. Karta orqali xarid qiling — 5 daqiqada faollashadi."
+        title={`Premium Usz Store — ${t("stars.title")} & Premium`}
+        description={t("home.subtitle")}
         path="/"
       />
       <SiteHeader />
@@ -58,28 +72,26 @@ const Index = () => {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                 </span>
-                Premium Usz Store — 24/7 onlayn
+                {t("home.badge")}
               </span>
               <h1 className="mt-5 font-display text-4xl font-bold leading-[1.05] md:text-6xl">
-                Telegram <span className="text-primary">Stars</span> va Premium —<br className="hidden md:block" />
-                <span className="text-gradient">daqiqalarda</span> kelib tushadi
+                {t("home.title")}
               </h1>
               <p className="mt-5 max-w-xl text-base text-muted-foreground md:text-lg">
-                O'zbekistondagi eng ishonchli rasmiy marketplace. Karta orqali to'lang —
-                Telegram Stars yoki Premium akkauntingizga 5 daqiqada faollashadi.
+                {t("home.subtitle")}
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="h-12 rounded-xl bg-primary px-6 text-base font-semibold text-primary-foreground hover:bg-primary/90">
-                  <Link to="/stars"><Star className="h-4 w-4 fill-current" /> Stars sotib olish</Link>
+                  <Link to="/stars"><Star className="h-4 w-4 fill-current" /> {t("hero.starsCta")}</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="h-12 rounded-xl border-border px-6 text-base font-semibold hover:border-primary hover:text-primary">
-                  <Link to="/pricing"><Crown className="h-4 w-4" /> Premium tariflar</Link>
+                  <Link to="/pricing"><Crown className="h-4 w-4" /> {t("pricing.title")}</Link>
                 </Button>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Rasmiy Fragment API</span>
-                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Karta to'lovi xavfsiz</span>
-                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> 24/7 yordam</span>
+                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> {t("home.fragment")}</span>
+                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> {t("home.secure")}</span>
+                <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> {t("home.support24")}</span>
               </div>
             </div>
 
@@ -94,10 +106,10 @@ const Index = () => {
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Premium Usz</div>
-                      <div className="font-display text-sm font-bold">Premium Showcase</div>
+                      <div className="font-display text-sm font-bold">{t("home.showcase")}</div>
                     </div>
                   </div>
-                  <span className="pill pill-completed">LIVE</span>
+                  <span className="pill pill-completed">{t("home.live")}</span>
                 </div>
 
                 {/* Animated stars */}
@@ -115,22 +127,22 @@ const Index = () => {
                     <div className="font-display text-3xl font-bold tracking-tight">
                       1 ⭐ = <span className="text-primary">{rate}</span> <span className="text-base text-muted-foreground">UZS</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">Joriy bozor kursida</div>
+                    <div className="text-xs text-muted-foreground">{t("home.marketRate")}</div>
                   </div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {STAR_PACKS.slice(0, 3).map((s) => (
-                    <Link key={s} to="/stars" className="rounded-lg border border-border bg-secondary/40 p-3 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
+                    <Link key={s} to={starsPurchaseUrl(s)} className="rounded-lg border border-border bg-secondary/40 p-3 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
                       <div className="font-display text-lg font-bold">{s}</div>
-                      <div className="text-[10px] text-muted-foreground">{(s * rate).toLocaleString("ru-RU")} UZS</div>
+                      <div className="text-[10px] text-muted-foreground">{(s * rate).toLocaleString(locale)} UZS</div>
                     </Link>
                   ))}
                 </div>
 
                 <div className="mt-4 flex items-center justify-between rounded-lg bg-secondary/60 p-3 text-xs">
-                  <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Rasmiy yetkazib berish</span>
-                  <span className="font-semibold text-primary">5 daqiqa</span>
+                  <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> {t("home.delivery")}</span>
+                  <span className="font-semibold text-primary">{t("home.fiveMinutes")}</span>
                 </div>
               </div>
             </div>
@@ -141,36 +153,40 @@ const Index = () => {
         <section className="container">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
-              { icon: Users, label: "Foydalanuvchilar", value: "12,000+", color: "text-primary" },
-              { icon: ShoppingBag, label: "Muvaffaqiyatli buyurtmalar", value: "50,000+", color: "text-success" },
-              { icon: Zap, label: "O'rtacha yetkazib berish", value: "5 daqiqa", color: "text-warning" },
-              { icon: LifeBuoy, label: "Yordam", value: "24/7", color: "text-primary" },
+              { icon: Users, label: t("home.stats.users"), value: stats?.registered_users, color: "text-primary" },
+              { icon: ShoppingBag, label: t("home.stats.orders"), value: stats?.approved_orders, color: "text-success" },
+              { icon: Star, label: t("home.stats.packages"), value: stats?.stars_packages, color: "text-warning" },
+              { icon: Crown, label: t("home.stats.plans"), value: stats?.premium_plans, color: "text-primary" },
             ].map((s) => (
               <div key={s.label} className="stat-card">
                 <div className="flex items-center justify-between">
                   <span className="stat-label">{s.label}</span>
                   <s.icon className={`h-4 w-4 ${s.color}`} />
                 </div>
-                <div className="stat-value">{s.value}</div>
+                <div className={`stat-value min-h-8 ${statsLoading ? "animate-pulse" : ""}`}>{s.value == null ? "—" : s.value.toLocaleString(locale)}</div>
               </div>
             ))}
           </div>
         </section>
 
+        {statsError && <div role="status" className="container mt-3 flex items-center gap-3 text-sm text-muted-foreground">
+          {t("home.stats.unavailable")} <Button variant="ghost" size="sm" onClick={() => refreshStats()}>{t("common.retry")}</Button>
+        </div>}
+
         {/* POPULAR — STARS */}
         <section className="container mt-16">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="font-display text-2xl font-bold md:text-3xl">Mashhur Stars paketlari</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Tezkor xarid uchun tayyor miqdorlar</p>
+              <h2 className="font-display text-2xl font-bold md:text-3xl">{t("home.stars.title")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("home.stars.subtitle")}</p>
             </div>
-            <Link to="/stars" className="hidden text-sm font-medium text-primary hover:underline sm:inline-flex">Hammasini ko'rish →</Link>
+            <Link to="/stars" className="hidden text-sm font-medium text-primary hover:underline sm:inline-flex">{t("home.viewAll")} →</Link>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {STAR_PACKS.map((s) => (
               <Link
                 key={s}
-                to="/stars"
+                to={starsPurchaseUrl(s)}
                 className="surface surface-hover group p-5 text-center"
               >
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-warning/10">
@@ -179,7 +195,7 @@ const Index = () => {
                 <div className="mt-3 font-display text-2xl font-bold">{s}</div>
                 <div className="text-xs text-muted-foreground">Stars</div>
                 <div className="mt-3 border-t border-border pt-3 text-sm font-semibold text-primary">
-                  {(s * rate).toLocaleString("ru-RU")} UZS
+                  {(s * rate).toLocaleString(locale)} UZS
                 </div>
               </Link>
             ))}
@@ -190,10 +206,10 @@ const Index = () => {
         <section className="container mt-12">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="font-display text-2xl font-bold md:text-3xl">Telegram Premium tariflar</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Sevimli funksiyalar bilan obuna</p>
+              <h2 className="font-display text-2xl font-bold md:text-3xl">{t("home.premium.title")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("home.premium.subtitle")}</p>
             </div>
-            <Link to="/pricing" className="hidden text-sm font-medium text-primary hover:underline sm:inline-flex">Barchasi →</Link>
+            <Link to="/pricing" className="hidden text-sm font-medium text-primary hover:underline sm:inline-flex">{t("home.viewAll")} →</Link>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {plans.map((p) => {
@@ -202,24 +218,24 @@ const Index = () => {
                 <div key={p.id} className={`relative surface surface-hover p-6 ${popular ? "ring-2 ring-primary" : ""}`}>
                   {popular && (
                     <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
-                      Tavsiya etiladi
+                      {t("pricing.recommended")}
                     </span>
                   )}
                   <div className="flex items-center gap-2">
                     <Crown className="h-5 w-5 text-primary" />
-                    <h3 className="font-display text-lg font-bold">Premium {p.duration_months} oy</h3>
+                    <h3 className="font-display text-lg font-bold">Premium {p.duration_months} {t("pricing.months")}</h3>
                   </div>
                   <div className="mt-4 font-display text-3xl font-bold tracking-tight">
-                    {Number(p.price_uzs).toLocaleString("ru-RU")}
+                    {Number(p.price_uzs).toLocaleString(locale)}
                     <span className="ml-1 text-base font-normal text-muted-foreground">UZS</span>
                   </div>
                   <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" /> Premium badge</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" /> 4 GB fayl yuklash</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" /> Voice-to-text</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" /> {t("pricing.badge")}</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" /> {t("pricing.upload")}</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" /> {t("pricing.voice")}</li>
                   </ul>
                   <Button asChild className={`mt-6 w-full ${popular ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`} variant={popular ? "default" : "outline"}>
-                    <Link to={`/buy/premium?plan=${p.id}`}>Sotib olish <ArrowRight className="h-4 w-4" /></Link>
+                    <Link to={`/buy/premium?plan=${p.id}`}>{t("stars.buy")} <ArrowRight className="h-4 w-4" /></Link>
                   </Button>
                 </div>
               );
@@ -232,17 +248,17 @@ const Index = () => {
           <div className="flex items-end justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <Gift className="h-3.5 w-3.5" /> NFT Collection
+                <Gift className="h-3.5 w-3.5" /> {t("gifts.collection")}
               </div>
-              <h2 className="mt-2 font-display text-2xl font-bold md:text-3xl">NFT Gift marketplace</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Telegram NFT sovg'alarining noyob to'plami</p>
+              <h2 className="mt-2 font-display text-2xl font-bold md:text-3xl">{t("gifts.title")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("home.gifts.subtitle")}</p>
             </div>
-            <Link to="/gifts" className="hidden text-sm font-medium text-primary hover:underline sm:inline-flex">Barchasi →</Link>
+            <Link to="/gifts" className="hidden text-sm font-medium text-primary hover:underline sm:inline-flex">{t("home.viewAll")} →</Link>
           </div>
           {gifts.length === 0 ? (
             <div className="mt-6 surface p-10 text-center">
               <Gift className="mx-auto h-10 w-10 text-muted-foreground" />
-              <p className="mt-3 text-sm text-muted-foreground">Tez orada NFT sovg'alar qo'shiladi</p>
+              <p className="mt-3 text-sm text-muted-foreground">{t("home.gifts.empty")}</p>
             </div>
           ) : (
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -267,13 +283,13 @@ const Index = () => {
                       {g.price_ton != null && <div className="text-[11px] text-muted-foreground">{g.price_ton} TON</div>}
                       {g.price != null && (
                         <div className="font-display text-sm font-bold text-primary">
-                          {Number(g.price).toLocaleString("ru-RU")} <span className="text-[10px] text-muted-foreground">UZS</span>
+                          {Number(g.price).toLocaleString(locale)} <span className="text-[10px] text-muted-foreground">UZS</span>
                         </div>
                       )}
                     </div>
                     {g.telegram_link && (
                       <Button asChild size="sm" variant="outline" className="h-7 rounded-full px-2 text-xs">
-                        <a href={g.telegram_link} target="_blank" rel="noreferrer">Xarid <ExternalLink className="ml-1 h-3 w-3" /></a>
+                        <a href={g.telegram_link} target="_blank" rel="noreferrer">{t("stars.buy")} <ExternalLink className="ml-1 h-3 w-3" /></a>
                       </Button>
                     )}
                   </div>
@@ -288,18 +304,17 @@ const Index = () => {
           <div className="surface-lg p-8 md:p-10">
             <div className="grid gap-8 lg:grid-cols-2">
               <div>
-                <h2 className="font-display text-2xl font-bold md:text-3xl">Nega Premium Usz Store?</h2>
+                <h2 className="font-display text-2xl font-bold md:text-3xl">{t("home.why.title")}</h2>
                 <p className="mt-3 text-muted-foreground">
-                  Biz Telegram'ning rasmiy Fragment API'si bilan to'g'ridan-to'g'ri ishlaymiz —
-                  arzon narx, tez yetkazib berish va 24/7 yordam.
+                  {t("home.why.description")}
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
-                  { icon: Zap, title: "Tezkor yetkazib berish", desc: "O'rtacha 5 daqiqada faollashadi" },
-                  { icon: ShieldCheck, title: "Xavfsiz to'lov", desc: "Bank kartasi orqali, SSL himoyalangan" },
-                  { icon: TrendingUp, title: "Eng yaxshi kurs", desc: "Bozordagi eng arzon narxlar" },
-                  { icon: LifeBuoy, title: "24/7 yordam", desc: "Istalgan vaqtda javob beramiz" },
+                  { icon: Zap, title: t("home.why.fast"), desc: t("home.why.fastDesc") },
+                  { icon: ShieldCheck, title: t("home.why.safe"), desc: t("home.why.safeDesc") },
+                  { icon: TrendingUp, title: t("home.why.rate"), desc: t("home.why.rateDesc") },
+                  { icon: LifeBuoy, title: t("home.support24"), desc: t("home.why.supportDesc") },
                 ].map((f) => (
                   <div key={f.title} className="flex gap-3 rounded-xl border border-border bg-card p-4">
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -320,39 +335,39 @@ const Index = () => {
         <section className="container mt-16">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="font-display text-2xl font-bold md:text-3xl">So'nggi muvaffaqiyatli buyurtmalar</h2>
+            <h2 className="font-display text-2xl font-bold md:text-3xl">{t("home.orders.title")}</h2>
           </div>
           <div className="mt-6 surface overflow-hidden">
             <div className="table-scroll">
               <table className="w-full">
                 <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
-                    <th className="p-4 font-medium">Buyurtma</th>
-                    <th className="p-4 font-medium">Mahsulot</th>
-                    <th className="p-4 font-medium">Summa</th>
-                    <th className="p-4 font-medium">Vaqt</th>
-                    <th className="p-4 font-medium">Holat</th>
+                    <th className="p-4 font-medium">{t("common.order")}</th>
+                    <th className="p-4 font-medium">{t("common.product")}</th>
+                    <th className="p-4 font-medium">{t("common.amount")}</th>
+                    <th className="p-4 font-medium">{t("common.time")}</th>
+                    <th className="p-4 font-medium">{t("common.status")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recent.length === 0 ? (
-                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Hozircha buyurtmalar yo'q</td></tr>
+                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">{t("home.orders.empty")}</td></tr>
                   ) : recent.map((o) => (
                     <tr key={o.order_number} className="border-t border-border">
                       <td className="p-4 font-mono text-xs">{o.order_number}</td>
                       <td className="p-4">
                         {o.product_type === "premium" ? (
-                          <span className="inline-flex items-center gap-1.5"><Crown className="h-4 w-4 text-primary" /> Premium {o.duration_months} oy</span>
+                          <span className="inline-flex items-center gap-1.5"><Crown className="h-4 w-4 text-primary" /> Premium {o.duration_months} {t("pricing.months")}</span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5"><Star className="h-4 w-4 fill-warning text-warning" /> {o.stars_amount} Stars</span>
                         )}
                       </td>
-                      <td className="p-4 font-semibold">{Number(o.amount_uzs).toLocaleString("ru-RU")} UZS</td>
+                      <td className="p-4 font-semibold">{Number(o.amount_uzs).toLocaleString(locale)} UZS</td>
                       <td className="p-4 text-xs text-muted-foreground">
                         <Clock className="mr-1 inline h-3 w-3" />
-                        {new Date(o.created_at).toLocaleString("ru-RU")}
+                        {new Date(o.created_at).toLocaleString(locale)}
                       </td>
-                      <td className="p-4"><span className="pill pill-completed"><CheckCircle2 className="h-3 w-3" /> Yakunlandi</span></td>
+                      <td className="p-4"><span className="pill pill-completed"><CheckCircle2 className="h-3 w-3" /> {t("status.completed")}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -367,22 +382,21 @@ const Index = () => {
             <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
-                  <MessageCircle className="h-3.5 w-3.5" /> 24/7 yordam markazi
+                  <MessageCircle className="h-3.5 w-3.5" /> {t("home.support24")}
                 </div>
                 <h2 className="mt-3 font-display text-2xl font-bold text-primary-foreground md:text-3xl">
-                  Savolingiz bormi? Biz yordam beramiz
+                  {t("home.support.title")}
                 </h2>
                 <p className="mt-2 max-w-xl text-sm opacity-90">
-                  Telegram bot yoki saytdagi chat orqali istalgan vaqtda murojaat qiling.
-                  O'rtacha javob vaqti — 2 daqiqa.
+                  {t("home.support.description")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90">
-                  <Link to="/faq">Yordam markazi</Link>
+                  <Link to="/faq">{t("faq.center")}</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="border-white/30 bg-transparent text-primary-foreground hover:bg-white/10">
-                  <a href="https://t.me/" target="_blank" rel="noreferrer">Telegram bot</a>
+                  <a href="https://t.me/" target="_blank" rel="noreferrer">{t("faq.bot")}</a>
                 </Button>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 
 export const openSupportChat = () => {
   window.dispatchEvent(new CustomEvent("open-support-chat"));
@@ -15,6 +16,7 @@ type Msg = { id: string; sender_kind: "user" | "admin"; body: string; created_at
 
 export const SupportChat = () => {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -99,7 +101,7 @@ export const SupportChat = () => {
   const send = async () => {
     const body = text.trim();
     if (!body || !threadId || !user) return;
-    if (body.length > 2000) return toast.error("Xabar juda uzun");
+    if (body.length > 2000) return toast.error(t("chat.tooLong"));
     setBusy(true);
     const { error } = await supabase.from("support_messages").insert({
       thread_id: threadId,
@@ -118,7 +120,7 @@ export const SupportChat = () => {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="fixed bottom-4 right-4 z-50 grid h-12 w-12 place-items-center rounded-full bg-gradient-primary shadow-glow transition-all hover:scale-110 md:bottom-6 md:right-6 md:h-14 md:w-14"
-        aria-label="Support chat"
+        aria-label={t("faq.chat")}
       >
         {open ? <X className="h-5 w-5 text-primary-foreground" /> : <MessageCircle className="h-5 w-5 text-primary-foreground" />}
         {!open && unread > 0 && (
@@ -132,10 +134,10 @@ export const SupportChat = () => {
         <div className="fixed bottom-20 right-4 z-50 flex h-[70vh] max-h-[560px] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-2xl backdrop-blur-xl md:right-6">
           <div className="flex items-start justify-between border-b border-border/60 p-4">
             <div>
-              <h3 className="font-display text-lg font-bold">Admin bilan chat</h3>
-              <p className="text-xs text-muted-foreground">Tezda javob beramiz</p>
+              <h3 className="font-display text-lg font-bold">{t("chat.title")}</h3>
+              <p className="text-xs text-muted-foreground">{t("chat.subtitle")}</p>
             </div>
-            <button onClick={() => setOpen(false)} className="rounded-full p-1 hover:bg-secondary" aria-label="Yopish">
+            <button onClick={() => setOpen(false)} className="rounded-full p-1 hover:bg-secondary" aria-label={t("common.close")}>
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -143,16 +145,16 @@ export const SupportChat = () => {
           {!user ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
               <Lock className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Chat uchun avval tizimga kiring</p>
+              <p className="text-sm text-muted-foreground">{t("chat.signin")}</p>
               <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground">
-                <Link to="/auth" onClick={() => setOpen(false)}>Kirish</Link>
+                <Link to="/auth" onClick={() => setOpen(false)}>{t("nav.login")}</Link>
               </Button>
             </div>
           ) : (
             <>
               <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto p-4">
                 {messages.length === 0 && (
-                  <p className="text-center text-xs text-muted-foreground">Salom! Savolingizni yozing.</p>
+                  <p className="text-center text-xs text-muted-foreground">{t("chat.greeting")}</p>
                 )}
                 {messages.map((m) => (
                   <div
@@ -173,7 +175,7 @@ export const SupportChat = () => {
               </div>
               <div className="flex items-center gap-2 border-t border-border/60 p-3">
                 <Input
-                  placeholder="Xabar yozing..."
+                  placeholder={t("chat.placeholder")}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onKeyDown={(e) => {
@@ -184,7 +186,7 @@ export const SupportChat = () => {
                   }}
                   maxLength={2000}
                 />
-                <Button onClick={send} disabled={busy || !text.trim()} size="icon" className="bg-gradient-primary text-primary-foreground">
+                <Button aria-label={t("common.send")} onClick={send} disabled={busy || !text.trim()} size="icon" className="bg-gradient-primary text-primary-foreground">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

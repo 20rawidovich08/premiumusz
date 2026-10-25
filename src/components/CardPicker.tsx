@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 
 export type CardItem = { number: string; holder: string; bank: string };
 
@@ -14,7 +16,8 @@ type Props = {
   amountLabel?: string;
 };
 
-export const CardPicker = ({ amountUzs, copyLabel = "Copied", cardNumberLabel = "Karta raqami", cardHolderLabel = "Karta egasi", bankLabel = "Bank", amountLabel }: Props) => {
+export const CardPicker = ({ amountUzs, copyLabel, cardNumberLabel, cardHolderLabel, bankLabel, amountLabel }: Props) => {
+  const { t, locale } = useI18n();
   const [cards, setCards] = useState<CardItem[]>([]);
   const [active, setActive] = useState(0);
 
@@ -48,7 +51,7 @@ export const CardPicker = ({ amountUzs, copyLabel = "Copied", cardNumberLabel = 
   const copy = (s: string) => {
     if (!s) return;
     navigator.clipboard.writeText(s);
-    toast.success(copyLabel);
+    toast.success(copyLabel ?? t("common.copied"));
   };
 
   if (cards.length === 0) {
@@ -70,33 +73,33 @@ export const CardPicker = ({ amountUzs, copyLabel = "Copied", cardNumberLabel = 
                 i === active ? "border-primary bg-primary/10 text-primary" : "border-border/60 hover:border-primary/50"
               }`}
             >
-              {c.bank || `Karta #${i + 1}`}
+              {c.bank || `${t("common.card")} #${i + 1}`}
             </button>
           ))}
         </div>
       )}
       <div className="rounded-xl bg-secondary/60 p-4">
-        <div className="text-xs uppercase text-muted-foreground">{cardNumberLabel}</div>
+        <div className="text-xs uppercase text-muted-foreground">{cardNumberLabel ?? t("topup.cardNumber")}</div>
         <div className="mt-1 flex items-center justify-between gap-2">
           <span className="font-mono text-lg tracking-wider">{card?.number || "—"}</span>
-          <button onClick={() => copy(card?.number || "")} className="rounded-lg p-2 hover:bg-background/50">
+          <Button variant="ghost" size="icon" aria-label={t("common.copy")} onClick={() => copy(card?.number || "")} className="rounded-lg p-2 hover:bg-background/50">
             <Copy className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <div>
-            <div className="text-xs uppercase text-muted-foreground">{cardHolderLabel}</div>
+            <div className="text-xs uppercase text-muted-foreground">{cardHolderLabel ?? t("topup.cardHolder")}</div>
             <div className="mt-0.5 font-medium">{card?.holder || "—"}</div>
           </div>
           <div>
-            <div className="text-xs uppercase text-muted-foreground">{bankLabel}</div>
+            <div className="text-xs uppercase text-muted-foreground">{bankLabel ?? t("common.bank")}</div>
             <div className="mt-0.5 font-medium">{card?.bank || "—"}</div>
           </div>
         </div>
       </div>
       {typeof amountUzs === "number" && amountUzs > 0 && (
         <div className="rounded-xl bg-primary/10 border border-primary/20 p-4 text-sm">
-          <div className="font-semibold mb-1">{amountUzs.toLocaleString("ru-RU")} UZS</div>
+          <div className="font-semibold mb-1">{amountUzs.toLocaleString(locale)} UZS</div>
           {amountLabel && <p className="text-xs text-muted-foreground">{amountLabel}</p>}
         </div>
       )}

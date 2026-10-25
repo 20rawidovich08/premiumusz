@@ -5,12 +5,12 @@ import { Seo } from "@/lib/seo";
 import { useI18n } from "@/lib/i18n";
 
 const Pricing = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
     <div className="flex min-h-screen flex-col">
       <Seo
-        title="Telegram Premium tariflari — 3, 6, 12 oy | Premium UZ"
-        description="Telegram Premium obunaning eng arzon narxlari O'zbekistonda. 3, 6 va 12 oylik tariflarni karta orqali xarid qiling."
+        title={`${t("pricing.title")} — Premium Usz`}
+        description={t("pricing.subtitle")}
         path="/pricing"
       />
       <SiteHeader />

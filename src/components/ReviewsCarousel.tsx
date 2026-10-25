@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Star } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface Review {
   id: string;
@@ -11,6 +12,7 @@ interface Review {
 }
 
 export const ReviewsCarousel = () => {
+  const { t, locale } = useI18n();
   const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
@@ -28,8 +30,8 @@ export const ReviewsCarousel = () => {
   return (
     <section className="container py-16">
       <div className="mb-10 text-center">
-        <h2 className="font-display text-4xl font-bold md:text-5xl">Mijozlarimiz fikri</h2>
-        <p className="mt-3 text-muted-foreground">Bizga ishongan foydalanuvchilarning haqiqiy sharhlari</p>
+        <h2 className="font-display text-4xl font-bold md:text-5xl">{t("reviews.title")}</h2>
+        <p className="mt-3 text-muted-foreground">{t("reviews.description")}</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {reviews.map((r) => (
@@ -50,7 +52,7 @@ export const ReviewsCarousel = () => {
               <div>
                 <div className="text-sm font-medium">{r.display_name}</div>
                 <div className="text-xs text-muted-foreground">
-                  {new Date(r.created_at).toLocaleDateString()}
+                  {new Date(r.created_at).toLocaleDateString(locale)}
                 </div>
               </div>
             </div>

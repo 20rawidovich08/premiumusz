@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Seo } from "@/lib/seo";
+import { useI18n } from "@/lib/i18n";
 import { ArrowLeft, Calendar } from "lucide-react";
 
 interface Post {
@@ -18,6 +19,7 @@ interface Post {
 }
 
 const BlogPost = () => {
+  const { t, locale } = useI18n();
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<Post | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -41,9 +43,9 @@ const BlogPost = () => {
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
         <main className="flex-1 container py-20 text-center">
-          <h1 className="font-display text-3xl font-bold">Maqola topilmadi</h1>
+          <h1 className="font-display text-3xl font-bold">{t("blog.notFound")}</h1>
           <Link to="/blog" className="mt-4 inline-block text-primary underline">
-            Blogga qaytish
+            {t("blog.back")}
           </Link>
         </main>
         <SiteFooter />
@@ -55,7 +57,7 @@ const BlogPost = () => {
     return (
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
-        <main className="flex-1 grid place-items-center text-muted-foreground">Yuklanmoqda...</main>
+        <main className="flex-1 grid place-items-center text-muted-foreground">{t("common.loading")}</main>
         <SiteFooter />
       </div>
     );
@@ -83,14 +85,14 @@ const BlogPost = () => {
       <main className="flex-1 container py-12">
         <div className="mx-auto max-w-3xl">
           <Link to="/blog" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" /> Blogga qaytish
+            <ArrowLeft className="h-4 w-4" /> {t("blog.back")}
           </Link>
 
           <article className="mt-6">
             <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl">{post.title}</h1>
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              {post.published_at ? new Date(post.published_at).toLocaleDateString() : ""}
+              {post.published_at ? new Date(post.published_at).toLocaleDateString(locale) : ""}
             </div>
 
             {post.cover_url && (

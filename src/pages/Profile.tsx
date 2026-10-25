@@ -18,7 +18,7 @@ const statusLabel: Record<string, string> = {
 
 const Profile = () => {
   const { user, loading } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [txs, setTxs] = useState<any[]>([]);
@@ -72,17 +72,17 @@ const Profile = () => {
               <UserIcon className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-bold md:text-3xl">{profile.full_name || "Hisobim"}</h1>
-              <p className="text-sm text-muted-foreground">{user!.email}</p>
+              <h1 className="font-display text-2xl font-bold md:text-3xl">{profile.full_name || t("profile.account")}</h1>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>
 
           {/* Balance + quick actions */}
           <div className="grid gap-5 lg:grid-cols-3">
             <div className="surface-lg overflow-hidden bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground lg:col-span-1">
-              <div className="text-xs font-medium uppercase tracking-wider opacity-80">Joriy balans</div>
+              <div className="text-xs font-medium uppercase tracking-wider opacity-80">{t("profile.balance")}</div>
               <div className="mt-1 font-display text-3xl font-bold">
-                {Number(profile.balance).toLocaleString("ru-RU")} <span className="text-base font-normal opacity-80">UZS</span>
+                {Number(profile.balance).toLocaleString(locale)} <span className="text-base font-normal opacity-80">UZS</span>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Button asChild size="sm" className="bg-white text-primary hover:bg-white/90"><Link to="/topup">{t("profile.topup")}</Link></Button>
@@ -92,20 +92,20 @@ const Profile = () => {
 
             {/* Account info */}
             <div className="surface p-6 lg:col-span-2">
-              <h2 className="font-display text-base font-bold">Shaxsiy ma'lumotlar</h2>
+              <h2 className="font-display text-base font-bold">{t("profile.personalInfo")}</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div>
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("auth.fullname")}</Label>
                   <Input value={profile.full_name ?? ""} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} className="mt-2" />
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Telefon</Label>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("complete.phone")}</Label>
                   <Input value={profile.phone ?? ""} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="+998 90 123 45 67" className="mt-2" />
                 </div>
                 <div>
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</Label>
                   <div className="mt-2 flex items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 h-10 text-sm text-muted-foreground">
-                    <Mail className="h-4 w-4" /> {user!.email}
+                    <Mail className="h-4 w-4" /> {user?.email}
                   </div>
                 </div>
                 <div>
@@ -130,26 +130,26 @@ const Profile = () => {
                   <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                     <tr>
                       <th className="p-4 font-medium">№</th>
-                      <th className="p-4 font-medium">Mahsulot</th>
-                      <th className="p-4 font-medium">Summa</th>
-                      <th className="p-4 font-medium">Status</th>
-                      <th className="p-4 font-medium">Sana</th>
+                      <th className="p-4 font-medium">{t("common.product")}</th>
+                      <th className="p-4 font-medium">{t("common.amount")}</th>
+                      <th className="p-4 font-medium">{t("common.status")}</th>
+                      <th className="p-4 font-medium">{t("common.date")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orders.length === 0 ? (
-                      <tr><td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">Buyurtmalar yo'q</td></tr>
+                      <tr><td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">{t("profile.emptyOrders")}</td></tr>
                     ) : orders.map((o) => (
                       <tr key={o.order_number} className="border-t border-border">
                         <td className="p-4 font-mono text-xs">{o.order_number}</td>
                         <td className="p-4 text-sm">
                           {o.product_type === "premium"
-                            ? <span className="inline-flex items-center gap-1.5"><Crown className="h-4 w-4 text-primary" />{o.duration_months} oy</span>
+                            ? <span className="inline-flex items-center gap-1.5"><Crown className="h-4 w-4 text-primary" />{o.duration_months} {t("pricing.months")}</span>
                             : <span className="inline-flex items-center gap-1.5"><Star className="h-4 w-4 fill-warning text-warning" />{o.stars_amount} ⭐</span>}
                         </td>
-                        <td className="p-4 text-sm font-semibold">{Number(o.amount_uzs).toLocaleString("ru-RU")} UZS</td>
+                        <td className="p-4 text-sm font-semibold">{Number(o.amount_uzs).toLocaleString(locale)} UZS</td>
                         <td className="p-4"><span className={`pill pill-${o.status}`}>{t(statusLabel[o.status] ?? o.status)}</span></td>
-                        <td className="p-4 text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("ru-RU")}</td>
+                        <td className="p-4 text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString(locale)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -166,10 +166,10 @@ const Profile = () => {
                 <table className="w-full">
                   <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                     <tr>
-                      <th className="p-4 font-medium">Tip</th>
-                      <th className="p-4 font-medium">Summa</th>
-                      <th className="p-4 font-medium">Status</th>
-                      <th className="p-4 font-medium">Sana</th>
+                      <th className="p-4 font-medium">{t("common.type")}</th>
+                      <th className="p-4 font-medium">{t("common.amount")}</th>
+                      <th className="p-4 font-medium">{t("common.status")}</th>
+                      <th className="p-4 font-medium">{t("common.date")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -179,15 +179,15 @@ const Profile = () => {
                       const positive = Number(x.amount_uzs) >= 0;
                       return (
                         <tr key={x.id} className="border-t border-border">
-                          <td className="p-4 text-sm capitalize">{x.type.replace("_", " ")}</td>
+                          <td className="p-4 text-sm capitalize">{t(`transaction.${x.type}`) === `transaction.${x.type}` ? t("transaction.unknown") : t(`transaction.${x.type}`)}</td>
                           <td className={`p-4 text-sm font-semibold ${positive ? "text-success" : "text-destructive"}`}>
                             <span className="inline-flex items-center gap-1">
                               {positive ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                              {Number(x.amount_uzs).toLocaleString("ru-RU")} UZS
+                              {Number(x.amount_uzs).toLocaleString(locale)} UZS
                             </span>
                           </td>
-                          <td className="p-4"><span className={`pill pill-${x.status}`}>{x.status}</span></td>
-                          <td className="p-4 text-xs text-muted-foreground">{new Date(x.created_at).toLocaleString("ru-RU")}</td>
+                          <td className="p-4"><span className={`pill pill-${x.status}`}>{t(`status.${x.status}`)}</span></td>
+                          <td className="p-4 text-xs text-muted-foreground">{new Date(x.created_at).toLocaleString(locale)}</td>
                         </tr>
                       );
                     })}

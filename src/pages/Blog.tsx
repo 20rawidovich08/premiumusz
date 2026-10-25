@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Seo } from "@/lib/seo";
+import { useI18n } from "@/lib/i18n";
 import { Calendar, ArrowRight, BookOpen } from "lucide-react";
 
 interface Post {
@@ -16,6 +17,7 @@ interface Post {
 }
 
 const Blog = () => {
+  const { t, locale } = useI18n();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +37,7 @@ const Blog = () => {
     <div className="flex min-h-screen flex-col">
       <Seo
         title="Blog — Telegram Premium UZ"
-        description="Telegram Premium, Stars va boshqa Telegram xizmatlari haqida eng so'nggi yangiliklar va foydali maqolalar."
+        description={t("blog.subtitle")}
         path="/blog"
       />
       <SiteHeader />
@@ -44,15 +46,15 @@ const Blog = () => {
           <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full bg-primary/15 px-4 py-1.5 text-xs font-medium text-primary">
             <BookOpen className="h-3.5 w-3.5" /> Blog
           </div>
-          <h1 className="font-display text-4xl font-bold md:text-5xl">Yangiliklar va maqolalar</h1>
-          <p className="mt-3 text-muted-foreground">Telegram Premium, Stars va xizmatlarimiz haqida</p>
+          <h1 className="font-display text-4xl font-bold md:text-5xl">{t("blog.title")}</h1>
+          <p className="mt-3 text-muted-foreground">{t("blog.subtitle")}</p>
         </div>
 
         {loading ? (
-          <div className="text-center text-muted-foreground">Yuklanmoqda...</div>
+          <div className="text-center text-muted-foreground">{t("common.loading")}</div>
         ) : posts.length === 0 ? (
           <div className="text-center text-muted-foreground rounded-2xl glass p-12">
-            Hozircha maqolalar yo'q. Tez orada qo'shamiz!
+            {t("blog.empty")}
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -77,7 +79,7 @@ const Blog = () => {
                 <div className="p-5">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
-                    {p.published_at ? new Date(p.published_at).toLocaleDateString() : ""}
+                    {p.published_at ? new Date(p.published_at).toLocaleDateString(locale) : ""}
                   </div>
                   <h2 className="mt-2 font-display text-lg font-bold group-hover:text-primary">
                     {p.title}
@@ -86,7 +88,7 @@ const Blog = () => {
                     <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{p.excerpt}</p>
                   )}
                   <div className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    O'qish <ArrowRight className="h-3.5 w-3.5" />
+                    {t("blog.read")} <ArrowRight className="h-3.5 w-3.5" />
                   </div>
                 </div>
               </Link>
