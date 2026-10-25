@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Star, Wallet, CheckCircle2, TrendingUp, Sparkles, Minus, Plus } from "lucide-react";
 import { PromoInput } from "@/components/PromoInput";
+import { readStarsAmount, signInUrl, starsPurchaseUrl } from "@/lib/purchase-selection";
 
 interface Pkg { id: string; stars: number; }
 
@@ -19,17 +20,33 @@ const QUICK = [50, 100, 250, 500, 1000, 2500];
 
 const Stars = () => {
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
   const [packages, setPackages] = useState<Pkg[]>([]);
   const [rate, setRate] = useState(220);
   const [minStars, setMinStars] = useState(50);
-  const [custom, setCustom] = useState<number>(100);
+  const [custom, setCustom] = useState<number>(() => readStarsAmount(params.get("amount")));
   const [tg, setTg] = useState("");
   const [balance, setBalance] = useState(0);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ num: string } | null>(null);
   const [promo, setPromo] = useState<{ code: string; discount: number; final: number } | null>(null);
+
+  const chooseAmount = (amount: number) => {
+    setCustom(amount);
+    setPromo(null);
+    if (Number.isSafeInteger(amount) && amount >= minStars) {
+      const next = new URLSearchParams(params);
+      next.set("amount", String(amount));
+      setParams(next, { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    setCustom(readStarsAmount(params.get("amount"), minStars));
+    setPromo(null);
+  }, [params, minStars]);
 
   useEffect(() => {
     Promise.all([
@@ -62,7 +79,7 @@ const Stars = () => {
   const insufficient = user ? balance < finalPrice : false;
 
   const submit = async () => {
-    if (!user) { navigate("/auth?next=/stars"); return; }
+    if (!user) { navigate(signInUrl(starsPurchaseUrl(custom))); return; }
     if (!valid) return toast.error(`${t("stars.min")}: ${minStars}`);
     const tgTrim = tg.trim();
     if (!tgTrim) return toast.error(t("buy.target") + " — " + t("common.required"));
@@ -102,15 +119,15 @@ const Stars = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Seo title="Telegram Stars xarid qilish — Premium Usz" description="Telegram Stars'ni 50 dan boshlab UZS karta orqali xarid qiling." path="/stars" />
+      <Seo title={`${t("stars.pageTitle")} — Premium Usz`} description={t("stars.subtitle")} path="/stars" />
       <SiteHeader />
       <main className="flex-1 container py-10 md:py-14">
         <div className="mx-auto max-w-2xl text-center md:text-left md:max-w-none">
           <span className="inline-flex items-center gap-2 rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">
             <Star className="h-3.5 w-3.5 fill-current" /> Telegram Stars
           </span>
-          <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">Telegram Stars xarid qiling</h1>
-          <p className="mt-2 text-muted-foreground">Joriy kurs: <span className="font-semibold text-foreground">1 ⭐ = {rate} UZS</span></p>
+          <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">{t("stars.pageTitle")}</h1>
+          <p className="mt-2 text-muted-foreground">{t("stars.rate")}: <span className="font-semibold text-foreground">1 ⭐ = {rate} UZS</span></p>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
@@ -118,7 +135,7 @@ const Stars = () => {
           <div className="surface p-6">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <h2 className="font-display text-lg font-bold">Paketni tanlang</h2>
+              <h2 className="font-display text-lg font-bold">{t("buy.choosePackage")}</h2>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -128,7 +145,7 @@ const Stars = () => {
                   <button
                     key={q}
                     type="button"
-                    onClick={() => setCustom(q)}
+                    onClick={() => chooseAmount(q)}
                     className={`group rounded-xl border p-4 text-center transition-all ${
                       selected
                         ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
@@ -138,8 +155,8 @@ const Stars = () => {
                     <div className="mx-auto grid h-10 w-10 place-items-center rounded-lg bg-warning/10">
                       <Star className="h-5 w-5 fill-warning text-warning" />
                     </div>
-                    <div className="mt-3 font-display text-xl font-bold">{q.toLocaleString("ru-RU")}</div>
-                    <div className="mt-1 text-xs font-medium text-primary">{(q * rate).toLocaleString("ru-RU")} UZS</div>
+                    <div className="mt-3 font-display text-xl font-bold">{q.toLocaleString(locale)}</div>
+                    <div className="mt-1 text-xs font-medium text-primary">{(q * rate).toLocaleString(locale)} UZS</div>
                   </button>
                 );
               })}
@@ -148,12 +165,12 @@ const Stars = () => {
             {packages.length > 0 && (
               <>
                 <div className="mt-6 border-t border-border pt-5">
-                  <h3 className="text-sm font-semibold text-muted-foreground">Boshqa paketlar</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground">{t("stars.otherPackages")}</h3>
                   <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {packages.filter(p => !QUICK.includes(p.stars)).map((p) => (
                       <button
                         key={p.id}
-                        onClick={() => setCustom(p.stars)}
+                        onClick={() => chooseAmount(p.stars)}
                         className={`rounded-lg border p-3 text-center text-sm transition-all ${
                           custom === p.stars ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
                         }`}
@@ -172,68 +189,68 @@ const Stars = () => {
             {user && (
               <div className="mb-5 flex items-center justify-between rounded-xl bg-secondary p-4">
                 <div className="inline-flex items-center gap-2 text-sm">
-                  <Wallet className="h-4 w-4 text-primary" /> Balans
+                  <Wallet className="h-4 w-4 text-primary" /> {t("nav.balance")}
                 </div>
-                <div className="font-display text-base font-bold">{balance.toLocaleString("ru-RU")} UZS</div>
+                <div className="font-display text-base font-bold">{balance.toLocaleString(locale)} UZS</div>
               </div>
             )}
 
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Stars miqdori</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("buy.amountStars")}</Label>
             <div className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-card p-1.5">
-              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => setCustom(Math.max(minStars, custom - 50))}>
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" aria-label={t("stars.decrease")} onClick={() => chooseAmount(Math.max(minStars, custom - 50))}>
                 <Minus className="h-4 w-4" />
               </Button>
               <Input
                 type="number"
                 min={minStars}
                 value={custom}
-                onChange={(e) => setCustom(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                aria-label={t("buy.amountStars")} onChange={(e) => chooseAmount(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
                 className="border-0 bg-transparent text-center text-xl font-bold tracking-tight focus-visible:ring-0"
               />
-              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => setCustom(custom + 50)}>
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" aria-label={t("stars.increase")} onClick={() => chooseAmount(custom + 50)}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">Minimum: {minStars} ⭐</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">{t("stars.min")}: {minStars} ⭐</p>
 
             <div className="mt-4">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Telegram username</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("complete.username")}</Label>
               <Input value={tg} onChange={(e) => setTg(e.target.value)} placeholder="@username" className="mt-2" />
             </div>
 
             {user && valid && (
               <div className="mt-4">
-                <PromoInput amount={customPrice} type="stars" onApply={setPromo} />
+                <PromoInput key={customPrice} amount={customPrice} type="stars" onApply={setPromo} />
               </div>
             )}
 
             {/* Live price preview */}
             <div className="mt-5 rounded-xl border border-border bg-secondary/40 p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Miqdor</span>
-                <span className="font-semibold">{custom.toLocaleString("ru-RU")} ⭐</span>
+                <span className="text-muted-foreground">{t("common.quantity")}</span>
+                <span className="font-semibold">{custom.toLocaleString(locale)} ⭐</span>
               </div>
               <div className="mt-1.5 flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Kurs</span>
+                <span className="text-muted-foreground">{t("common.rate")}</span>
                 <span className="font-semibold">{rate} UZS / ⭐</span>
               </div>
               {promo && (
                 <div className="mt-1.5 flex items-center justify-between text-sm text-success">
                   <span>Promo: {promo.code}</span>
-                  <span className="font-semibold">−{promo.discount.toLocaleString("ru-RU")} UZS</span>
+                  <span className="font-semibold">−{promo.discount.toLocaleString(locale)} UZS</span>
                 </div>
               )}
               <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
-                <span className="text-xs font-semibold uppercase text-muted-foreground">Jami</span>
+                <span className="text-xs font-semibold uppercase text-muted-foreground">{t("common.total")}</span>
                 <div className="font-display text-2xl font-bold text-primary">
-                  {finalPrice.toLocaleString("ru-RU")} <span className="text-sm font-normal text-muted-foreground">UZS</span>
+                  {finalPrice.toLocaleString(locale)} <span className="text-sm font-normal text-muted-foreground">UZS</span>
                 </div>
               </div>
             </div>
 
             {user && insufficient && valid && (
               <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
-                {t("buy.insufficient")} <Link to="/topup" className="font-semibold text-primary hover:underline">To'ldirish</Link>
+                {t("buy.insufficient")} <Link to="/topup" className="font-semibold text-primary hover:underline">{t("profile.topup")}</Link>
               </div>
             )}
 
@@ -242,7 +259,7 @@ const Stars = () => {
               onClick={submit}
               className="mt-5 h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              {busy ? t("common.loading") : user ? "Sotib olish" : t("nav.login")}
+              {busy ? t("common.loading") : user ? t("stars.buy") : t("nav.login")}
             </Button>
           </div>
         </div>

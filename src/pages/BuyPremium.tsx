@@ -12,12 +12,13 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Crown, Wallet, CheckCircle2 } from "lucide-react";
 import { PromoInput } from "@/components/PromoInput";
+import { signInUrl } from "@/lib/purchase-selection";
 
 interface Plan { id: string; duration_months: number; price_uzs: number; }
 
 const BuyPremium = () => {
   const { user, loading } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -28,7 +29,7 @@ const BuyPremium = () => {
   const [done, setDone] = useState<{ num: string } | null>(null);
   const [promo, setPromo] = useState<{ code: string; discount: number; final: number } | null>(null);
 
-  useEffect(() => { if (!loading && !user) navigate("/auth?next=/buy/premium", { replace: true }); }, [loading, user, navigate]);
+  useEffect(() => { if (!loading && !user) navigate(signInUrl(`/buy/premium${window.location.search}`), { replace: true }); }, [loading, user, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -88,14 +89,14 @@ const BuyPremium = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Seo title="Telegram Premium xarid qilish — Premium Usz" description="3, 6 yoki 12 oylik Telegram Premium obunani rasmiylashtiring." path="/buy/premium" />
+      <Seo title={`${t("buy.premiumTitle")} — Premium Usz`} description={t("pricing.subtitle")} path="/buy/premium" />
       <SiteHeader />
       <main className="flex-1 container py-10 md:py-14">
         <div className="mx-auto max-w-3xl">
           <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <Crown className="h-3.5 w-3.5" /> Telegram Premium
           </span>
-          <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">Premium obuna xarid qiling</h1>
+          <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">{t("buy.premiumTitle")}</h1>
           <p className="mt-2 text-muted-foreground">{t("buy.choosePlan")}</p>
 
           <div className="mt-8 grid gap-3 md:grid-cols-3">
@@ -121,10 +122,10 @@ const BuyPremium = () => {
                     <span className="text-sm font-medium text-muted-foreground">{p.duration_months} {t("pricing.months")}</span>
                   </div>
                   <div className="mt-2 font-display text-2xl font-bold tracking-tight">
-                    {Number(p.price_uzs).toLocaleString("ru-RU")} <span className="text-sm font-normal text-muted-foreground">UZS</span>
+                    {Number(p.price_uzs).toLocaleString(locale)} <span className="text-sm font-normal text-muted-foreground">UZS</span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {(Math.round(p.price_uzs / p.duration_months)).toLocaleString("ru-RU")} UZS/oy
+                    {(Math.round(p.price_uzs / p.duration_months)).toLocaleString(locale)} UZS/{t("pricing.perMonth")}
                   </div>
                 </button>
               );
@@ -134,7 +135,7 @@ const BuyPremium = () => {
           <div className="mt-6 surface-lg p-6 space-y-5">
             <div className="flex items-center justify-between rounded-xl bg-secondary p-4">
               <div className="flex items-center gap-2"><Wallet className="h-4 w-4 text-primary" /> {t("buy.balance")}</div>
-              <div className="font-display text-base font-bold">{balance.toLocaleString("ru-RU")} UZS</div>
+              <div className="font-display text-base font-bold">{balance.toLocaleString(locale)} UZS</div>
             </div>
 
             <div>
@@ -155,11 +156,11 @@ const BuyPremium = () => {
               <div>
                 <div className="text-xs text-muted-foreground">{t("buy.price")}</div>
                 <div className="font-display text-2xl font-bold text-primary">
-                  {finalAmount.toLocaleString("ru-RU")} UZS
+                  {finalAmount.toLocaleString(locale)} UZS
                 </div>
                 {promo && selected && (
                   <div className="text-xs text-muted-foreground line-through">
-                    {Number(selected.price_uzs).toLocaleString("ru-RU")} UZS
+                    {Number(selected.price_uzs).toLocaleString(locale)} UZS
                   </div>
                 )}
               </div>

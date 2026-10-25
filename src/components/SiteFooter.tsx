@@ -6,7 +6,7 @@ export const SiteFooter = () => {
   const { t } = useI18n();
   const cols = [
     {
-      title: "Mahsulotlar",
+      title: t("footer.products"),
       links: [
         { to: "/stars", label: "Telegram Stars" },
         { to: "/pricing", label: "Telegram Premium" },
@@ -14,19 +14,19 @@ export const SiteFooter = () => {
       ],
     },
     {
-      title: "Hisob",
+      title: t("footer.account"),
       links: [
-        { to: "/profile", label: "Profil" },
-        { to: "/topup", label: "Balansni to'ldirish" },
-        { to: "/track", label: "Buyurtmani kuzatish" },
+        { to: "/profile", label: t("nav.profile") },
+        { to: "/topup", label: t("nav.topup") },
+        { to: "/track", label: t("nav.track") },
       ],
     },
     {
-      title: "Kompaniya",
+      title: t("footer.company"),
       links: [
-        { to: "/faq", label: "Yordam markazi" },
-        { to: "/terms", label: "Foydalanish shartlari" },
-        { to: "/privacy", label: "Maxfiylik siyosati" },
+        { to: "/faq", label: t("faq.center") },
+        { to: "/terms", label: t("footer.terms") },
+        { to: "/privacy", label: t("footer.privacy") },
       ],
     },
   ];
@@ -43,7 +43,7 @@ export const SiteFooter = () => {
               <span className="font-display text-base font-bold">Premium <span className="text-primary">Usz</span></span>
             </Link>
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-              O'zbekistondagi rasmiy Telegram Premium va Stars marketplace. Tez, xavfsiz, ishonchli.
+              {t("footer.description")}
             </p>
           </div>
           {cols.map((c) => (

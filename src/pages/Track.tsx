@@ -18,7 +18,7 @@ const statusColor: Record<string, string> = {
 };
 
 const Track = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [params] = useSearchParams();
   const [num, setNum] = useState(params.get("n") ?? "");
   const [order, setOrder] = useState<any>(null);
@@ -37,15 +37,16 @@ const Track = () => {
   };
 
   useEffect(() => {
-    if (params.get("n")) lookup(params.get("n")!);
+    const initial = params.get("n");
+    if (initial) lookup(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="flex min-h-screen flex-col">
       <Seo
-        title="Buyurtmani kuzatish — Premium UZ"
-        description="Buyurtma raqami bo'yicha Telegram Premium yoki Stars buyurtmangiz holatini tekshiring."
+        title={`${t("track.title")} — Premium Usz`}
+        description={t("track.placeholder")}
         path="/track"
       />
       <SiteHeader />
@@ -95,13 +96,13 @@ const Track = () => {
                 <div className="rounded-xl bg-secondary/60 p-3">
                   <div className="text-xs text-muted-foreground">{t("order.amount")}</div>
                   <div className="mt-0.5 font-medium">
-                    {order.amount_uzs ? `${Number(order.amount_uzs).toLocaleString("ru-RU")} UZS` : "—"}
+                    {order.amount_uzs ? `${Number(order.amount_uzs).toLocaleString(locale)} UZS` : "—"}
                   </div>
                 </div>
               </div>
               {order.admin_note && (
                 <div className="mt-4 rounded-xl bg-secondary/60 p-3 text-sm">
-                  <div className="text-xs text-muted-foreground">Note</div>
+                  <div className="text-xs text-muted-foreground">{t("common.note")}</div>
                   <div className="mt-0.5">{order.admin_note}</div>
                 </div>
               )}

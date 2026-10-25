@@ -1,49 +1,47 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Seo } from "@/lib/seo";
+import { useI18n } from "@/lib/i18n";
 
-const Privacy = () => (
+const Privacy = () => {
+  const { t, locale } = useI18n();
+  return (
   <div className="flex min-h-screen flex-col">
     <Seo
-      title="Maxfiylik siyosati — Premium UZ"
-      description="Premium UZ saytida foydalanuvchi ma'lumotlari qanday yig'iladi, saqlanadi va himoyalanadi."
+      title={`${t("footer.privacy")} — Premium Usz`}
+      description={t("footer.privacy")}
       path="/privacy"
     />
     <SiteHeader />
     <main className="flex-1 container py-12">
       <div className="mx-auto max-w-3xl rounded-3xl glass p-8 prose prose-invert prose-headings:font-display">
-        <h1>Maxfiylik siyosati</h1>
-        <p className="text-sm text-muted-foreground">Oxirgi yangilanish: {new Date().toLocaleDateString("uz-UZ")}</p>
-
-        <h2>1. Yig'ilgan ma'lumotlar</h2>
+        <h1>{t("footer.privacy")}</h1>
+        <p className="text-sm text-muted-foreground">{t("common.updated")}: {new Date().toLocaleDateString(locale)}</p>
+        <h2>{t("privacy.data")}</h2>
         <ul>
-          <li>Email manzil (ro'yxatdan o'tishda)</li>
-          <li>F.I.Sh., telefon raqami, Telegram username</li>
-          <li>To'lov cheklari rasmlari</li>
-          <li>Buyurtmalar tarixi va balans tranzaksiyalari</li>
+          <li>{t("privacy.email")}</li>
+          <li>{t("privacy.identity")}</li>
+          <li>{t("privacy.receipts")}</li>
+          <li>{t("privacy.history")}</li>
         </ul>
-
-        <h2>2. Foydalanish maqsadi</h2>
-        <p>Ma'lumotlar faqat buyurtmalarni qayta ishlash, to'lovlarni tasdiqlash va sizga xizmat ko'rsatish uchun ishlatiladi. Uchinchi shaxslarga sotilmaydi.</p>
-
-        <h2>3. Saqlanish</h2>
-        <p>Barcha ma'lumotlar shifrlangan holda himoyalangan serverlarda saqlanadi. To'lov cheklari xavfsiz storage'da saqlanadi va faqat admin foydalana oladi.</p>
-
-        <h2>4. Cookie va analitika</h2>
-        <p>Sayt ishlashi uchun zarur cookie'lardan foydalanamiz (sessiya, til). Tashqi tracker'lar yo'q.</p>
-
-        <h2>5. Foydalanuvchi huquqlari</h2>
+        <h2>{t("privacy.purpose")}</h2>
+        <p>{t("privacy.purposeText")}</p>
+        <h2>{t("privacy.storage")}</h2>
+        <p>{t("privacy.storageText")}</p>
+        <h2>{t("privacy.cookies")}</h2>
+        <p>{t("privacy.cookiesText")}</p>
+        <h2>{t("privacy.rights")}</h2>
         <ul>
-          <li>O'z ma'lumotlaringizni ko'rish</li>
-          <li>Akkauntni o'chirishni so'rash</li>
-          <li>Ma'lumotlaringizni eksport qilish</li>
+          <li>{t("privacy.view")}</li>
+          <li>{t("privacy.delete")}</li>
+          <li>{t("privacy.export")}</li>
         </ul>
-
-        <h2>6. Aloqa</h2>
-        <p>Maxfiylik bo'yicha savollar uchun Telegram bot orqali murojaat qiling.</p>
+        <h2>{t("privacy.contact")}</h2>
+        <p>{t("privacy.contactText")}</p>
       </div>
     </main>
     <SiteFooter />
   </div>
 );
+};
 export default Privacy;

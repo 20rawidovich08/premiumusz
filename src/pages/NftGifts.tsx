@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Seo } from "@/lib/seo";
+import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ const tileGradients = [
 ];
 
 const NftGifts = () => {
+  const { t, locale } = useI18n();
   const [gifts, setGifts] = useState<NftGift[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,8 +47,8 @@ const NftGifts = () => {
   return (
     <div className="flex min-h-screen flex-col">
       <Seo
-        title="NFT Gift — Telegram NFT sovg'alar | Premium UZ"
-        description="Telegram NFT sovg'alarini Premium UZ orqali tomosha qiling va xarid qiling."
+        title={`${t("gifts.title")} — Premium Usz`}
+        description={t("gifts.description")}
         path="/gifts"
       />
       <SiteHeader />
@@ -54,13 +56,13 @@ const NftGifts = () => {
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs font-medium">
             <Sparkles className="h-3.5 w-3.5" style={{ color: "hsl(var(--c-magenta))" }} />
-            NFT Collection
+            {t("gifts.collection")}
           </span>
           <h1 className="mt-5 font-display text-4xl font-extrabold md:text-6xl">
-            <span className="text-gradient-rainbow">NFT Gift</span> Marketplace
+            {t("gifts.title")}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Telegram NFT sovg'alarining noyob to'plami. Yoqtirganingizni tanlang va to'g'ridan-to'g'ri xarid qiling.
+            {t("gifts.description")}
           </p>
         </div>
 
@@ -73,7 +75,7 @@ const NftGifts = () => {
         ) : gifts.length === 0 ? (
           <div className="mt-16 rounded-3xl glass p-10 text-center">
             <Gift className="mx-auto h-12 w-12 text-muted-foreground" />
-            <p className="mt-4 text-muted-foreground">Hozircha NFT sovg'alar yo'q. Tez orada qo'shamiz!</p>
+            <p className="mt-4 text-muted-foreground">{t("gifts.empty")}</p>
           </div>
         ) : (
           <div className="mt-12 grid auto-rows-[minmax(220px,auto)] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -112,14 +114,14 @@ const NftGifts = () => {
                     )}
                     {g.price != null && (
                       <div className="font-display text-xl font-bold">
-                        {Number(g.price).toLocaleString("ru-RU")} <span className="text-xs text-muted-foreground">UZS</span>
+                        {Number(g.price).toLocaleString(locale)} <span className="text-xs text-muted-foreground">UZS</span>
                       </div>
                     )}
                   </div>
                   {g.telegram_link && (
                     <Button asChild size="sm" className="rounded-full bg-gradient-primary">
                       <a href={g.telegram_link} target="_blank" rel="noreferrer">
-                        Xarid <ExternalLink className="ml-1 h-3 w-3" />
+                        {t("stars.buy")} <ExternalLink className="ml-1 h-3 w-3" />
                       </a>
                     </Button>
                   )}

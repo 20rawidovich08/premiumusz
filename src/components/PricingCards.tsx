@@ -12,7 +12,7 @@ interface Plan {
 }
 
 export const PricingCards = ({ compact = false }: { compact?: boolean }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [plans, setPlans] = useState<Plan[]>([]);
 
   useEffect(() => {
@@ -49,15 +49,15 @@ export const PricingCards = ({ compact = false }: { compact?: boolean }) => {
               </h3>
             </div>
             <div className="mt-4 font-display text-4xl font-bold tracking-tight">
-              {Number(p.price_uzs).toLocaleString("ru-RU")}
+              {Number(p.price_uzs).toLocaleString(locale)}
               <span className="ml-1 text-base font-normal text-muted-foreground">UZS</span>
             </div>
             {!compact && (
               <ul className="mt-6 space-y-2.5 text-sm">
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Premium badge</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> 4 GB fayl yuklash</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Tezroq yuklash</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Voice-to-text</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {t("pricing.badge")}</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {t("pricing.upload")}</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {t("pricing.faster")}</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {t("pricing.voice")}</li>
               </ul>
             )}
             <Button
