@@ -772,6 +772,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      public_store_stats: { Args: never; Returns: Json }
       purchase_premium_with_balance: {
         Args: { p_plan_id: string; p_telegram: string }
         Returns: {
