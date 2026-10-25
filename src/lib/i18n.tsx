@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { storefrontTranslations } from "./storefront-translations";
 
 export type Lang = "uz" | "ru" | "en";
 
@@ -364,10 +365,19 @@ const dicts: Record<Lang, Dict> = {
   },
 };
 
+export const locales: Record<Lang, string> = { uz: "uz-UZ", ru: "ru-RU", en: "en-US" };
+
+export const translate = (lang: Lang, key: string, values: Record<string, string | number> = {}) => {
+  const entry = storefrontTranslations[key as keyof typeof storefrontTranslations];
+  const text = entry?.[lang] ?? dicts[lang][key] ?? dicts.uz[key] ?? key;
+  return text.replace(/\{(\w+)\}/g, (match, name: string) => String(values[name] ?? match));
+};
+
 interface I18nContextValue {
   lang: Lang;
+  locale: string;
   setLang: (l: Lang) => void;
-  t: (key: string) => string;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }
 
 const I18nContext = createContext<I18nContextValue | undefined>(undefined);
@@ -384,9 +394,9 @@ export const I18nProvider = ({ children }: { children: ReactNode }) => {
   }, [lang]);
 
   const setLang = (l: Lang) => setLangState(l);
-  const t = (key: string) => dicts[lang][key] ?? key;
+  const t = (key: string, values?: Record<string, string | number>) => translate(lang, key, values);
 
-  return <I18nContext.Provider value={{ lang, setLang, t }}>{children}</I18nContext.Provider>;
+  return <I18nContext.Provider value={{ lang, locale: locales[lang], setLang, t }}>{children}</I18nContext.Provider>;
 };
 
 export const useI18n = () => {
