@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const SiteHeader = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [balance, setBalance] = useState<number>(0);
@@ -40,9 +40,9 @@ export const SiteHeader = () => {
     { to: "/", label: t("nav.home") },
     { to: "/stars", label: t("nav.stars") },
     { to: "/pricing", label: t("nav.pricing") },
-    { to: "/gifts", label: "NFT Gift" },
-    { to: "/topup", label: "To'lovlar" },
-    { to: "/faq", label: "Yordam" },
+    { to: "/gifts", label: t("nav.gifts") },
+    { to: "/topup", label: t("nav.payments") },
+    { to: "/faq", label: t("nav.help") },
   ];
 
   const signOut = async () => {
@@ -65,7 +65,7 @@ export const SiteHeader = () => {
         </Link>
 
         {/* Nav */}
-        <nav className="hidden items-center gap-0.5 md:flex">
+        <nav className="hidden items-center gap-0.5 lg:flex">
           {navItems.map((n) => (
             <NavLink
               key={n.to}
@@ -95,17 +95,17 @@ export const SiteHeader = () => {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold shadow-xs hover:border-primary/50 hover:text-primary"
               >
                 <Wallet className="h-4 w-4 text-primary" />
-                <span>{balance.toLocaleString("ru-RU")}</span>
+                <span>{balance.toLocaleString(locale)}</span>
                 <span className="text-[10px] font-medium text-muted-foreground">UZS</span>
               </Link>
 
-              <Button variant="ghost" size="icon" className="hidden h-9 w-9 sm:inline-flex" aria-label="Bildirishnomalar">
+              <Button variant="ghost" size="icon" className="hidden h-9 w-9 sm:inline-flex" aria-label={t("common.notifications")}>
                 <Bell className="h-4 w-4" />
               </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9 rounded-full border-border" aria-label="Profil">
+                  <Button variant="outline" size="icon" className="h-9 w-9 rounded-full border-border" aria-label={t("nav.profile")}>
                     <UserIcon className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -119,7 +119,7 @@ export const SiteHeader = () => {
                     <Wallet className="mr-2 h-4 w-4" /> {t("nav.topup")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openSupportChat()}>
-                    <LifeBuoy className="mr-2 h-4 w-4" /> Qo'llab-quvvatlash
+                    <LifeBuoy className="mr-2 h-4 w-4" /> {t("nav.support")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut}>
@@ -137,7 +137,7 @@ export const SiteHeader = () => {
           {/* mobile menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9 md:hidden" aria-label="Menyu">
+              <Button variant="outline" size="icon" className="h-9 w-9 lg:hidden" aria-label={t("common.menu")}>
                 <Menu className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

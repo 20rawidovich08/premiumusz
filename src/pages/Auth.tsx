@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,9 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
+import { safeReturnPath } from "@/lib/purchase-selection";
+import { Seo } from "@/lib/seo";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeReturnPath(params.get("next") ?? sessionStorage.getItem("purchase-return"));
   const { user, loading } = useAuth();
   const { t } = useI18n();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -23,8 +27,11 @@ const Auth = () => {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (user) navigate("/profile", { replace: true });
-  }, [user, navigate]);
+    if (user) {
+      sessionStorage.removeItem("purchase-return");
+      navigate(next, { replace: true });
+    }
+  }, [user, navigate, next]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,20 +42,24 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/profile`,
+            emailRedirectTo: `${window.location.origin}/auth?next=${encodeURIComponent(next)}`,
             data: { full_name: fullName },
           },
         });
         if (error) throw error;
-        toast.success("Check your email to confirm sign up");
+        toast.success(t("auth.confirmEmail"));
         setMode("signin");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success("Welcome back");
+        toast.success(t("auth.welcomeBack"));
       }
     } catch (e: any) {
-      toast.error(e.message);
+      const message = String(e.message ?? "");
+      const key = message.includes("Invalid login credentials") ? "auth.invalidCredentials"
+        : message.includes("Email not confirmed") ? "auth.emailNotConfirmed"
+        : message.includes("already registered") ? "auth.alreadyRegistered" : "common.error";
+      toast.error(t(key));
     } finally {
       setBusy(false);
     }
@@ -56,22 +67,24 @@ const Auth = () => {
 
   const google = async () => {
     setBusy(true);
+    sessionStorage.setItem("purchase-return", next);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/profile",
+      redirect_uri: `${window.location.origin}/auth?next=${encodeURIComponent(next)}`,
     });
     if (result.error) {
-      toast.error((result.error as any).message || "Google sign-in failed");
+      toast.error(t("auth.googleError"));
       setBusy(false);
       return;
     }
     if (result.redirected) return;
-    navigate("/profile");
+    navigate(next);
   };
 
   if (loading) return null;
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo title={`${t(mode === "signup" ? "auth.signup" : "auth.signin")} — Premium Usz`} description={t("hero.subtitle")} path="/auth" />
       <SiteHeader />
       <main className="flex-1 grid place-items-center p-6">
         <form onSubmit={submit} className="w-full max-w-sm rounded-3xl glass p-8 animate-fade-up">
